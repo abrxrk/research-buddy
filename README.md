@@ -205,7 +205,7 @@ Or simply run **`bash start.sh`** from `backend/`. It finds (or creates) the vir
 
 API docs: http://localhost:8000/docs
 
-> **First run:** Docling, Nomic and the reranker download their models (~1–2 GB) the first time a paper is processed, so the first paper takes a few extra minutes.
+> **First run:** Nomic and the reranker are downloaded and loaded in the background when the server starts, so they're ready before your first request. Docling's PDF models (~1–2 GB in total with the others) download the first time a paper is processed, so the first paper takes a few extra minutes. Downloads are cached in `~/.cache/huggingface`; later starts only load from disk.
 
 ### 3. Frontend
 

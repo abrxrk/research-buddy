@@ -1,4 +1,5 @@
 import logging
+import threading
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -12,10 +13,21 @@ from app.services.papers import fail_interrupted
 logging.basicConfig(level=logging.INFO)
 
 
+def _warm_models():
+    """Load (and on first run, download) the embedding + reranker models so the first request isn't slow."""
+    from app.helpers.embeddings import embed_query
+    from app.helpers.reranker import rerank
+
+    embed_query("warmup")  # goes through the helpers' locks, so an early request just waits
+    rerank("warmup", ["warmup"])
+    logging.info("Models warmed up")
+
+
 @asynccontextmanager
 async def lifespan(_):
     await init_indexes()
     await fail_interrupted()
+    threading.Thread(target=_warm_models, daemon=True).start()  # background: server is up immediately
     yield
 
 
