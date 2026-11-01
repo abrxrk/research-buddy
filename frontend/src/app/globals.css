@@ -249,3 +249,9 @@
   100% { transform: translateY(400%); }
 }
 .animate-scan { animation: scan 2.2s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
+
+/* Dark, thin scrollbars everywhere; .no-scrollbar hides them (e.g. tab strips) */
+html { scrollbar-color: rgb(255 255 255 / 0.14) transparent; scrollbar-width: thin; }
+* { scrollbar-color: rgb(255 255 255 / 0.14) transparent; scrollbar-width: thin; }
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

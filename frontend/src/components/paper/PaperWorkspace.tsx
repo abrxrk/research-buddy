@@ -66,7 +66,7 @@ export function PaperWorkspace() {
                 <PaperHeader paper={loaded} />
                 {loaded.status !== "failed" && (
                   <Tabs defaultValue="overview" className="gap-6">
-                    <TabsList className="h-auto! w-full justify-start gap-1 overflow-x-auto rounded-full border bg-white/[0.02] p-1">
+                    <TabsList className="h-auto! no-scrollbar w-full justify-start gap-1 overflow-x-auto rounded-full border bg-white/[0.02] p-1">
                       {tabs.map((t) => (
                         <TabsTrigger
                           key={t.key}

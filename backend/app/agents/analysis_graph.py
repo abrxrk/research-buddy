@@ -16,7 +16,8 @@ HEAD_CHARS = 6000  # start of the paper: title, authors, abstract, intro
 
 SYSTEM = (
     "You are an expert research assistant analysing an academic paper. Use ONLY the provided excerpts. "
-    "Never invent numbers, names or facts; use empty lists or null when something is not in the excerpts."
+    "Never invent numbers, names or facts; use empty lists or null when something is not in the excerpts. "
+    "Write for someone reading about the paper: never mention 'excerpts', 'the provided text', or yourself."
 )
 
 
@@ -72,8 +73,10 @@ SECTIONS = {
     ),
     "findings": _section(
         "findings", Findings,
-        "Extract the key findings and results. For each result give the metric name, its value exactly as written, "
-        "and the page number from the excerpt header. Include comparisons with baselines.",
+        "Extract the key findings. 'summary': 2-3 sentences stating the most important results with their numbers. "
+        "For each result: 'finding' is one sentence (put comparisons with baselines here); 'metric' is a short readable "
+        "name like 'BLEU (EN→DE)' or 'Training time'; 'value' is ONLY the number with its unit, e.g. '28.4', '3.5 days', "
+        "'+2.0 BLEU' (null if there is no number); 'page' comes from the excerpt header.",
         ["experimental results and evaluation metrics", "comparison with baselines state of the art",
          "results table accuracy score performance", "ablation study"],
     ),

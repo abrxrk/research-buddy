@@ -35,3 +35,15 @@ export function timeAgo(iso: string): string {
   for (const [unit, s] of units) if (Math.abs(sec) >= s) return rtf.format(Math.round(sec / s), unit);
   return "just now";
 }
+
+/** "comparison_with_baselines" -> "Comparison with baselines", "BLEU.EN-DE" -> "BLEU EN-DE". */
+export function humanize(label: string): string {
+  const s = label.replace(/[_.]+/g, " ").replace(/\s+/g, " ").trim();
+  return s && s === s.toLowerCase() ? s[0].toUpperCase() + s.slice(1) : s;
+}
+
+/** A value that reads well as a big number ("28.4", "3.5 days", "+2.0 BLEU"), not a sentence. */
+export const isHeadlineValue = (v: string | null): v is string => !!v && /\d/.test(v) && v.length <= 14;
+
+/** Drop affiliations: "Ashish Vaswani (Google Brain)" -> "Ashish Vaswani". */
+export const authorName = (a: string) => a.replace(/\s*\(.*?\)\s*/g, " ").trim();

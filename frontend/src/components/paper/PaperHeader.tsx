@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { papersApi } from "@/api/papers";
 import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { ProcessingSteps } from "@/components/paper/ProcessingSteps";
-import { isProcessing, timeAgo } from "@/helpers/format";
+import { authorName, isProcessing, timeAgo } from "@/helpers/format";
 import { sourceInfo } from "@/helpers/source";
 import { usePaperStore } from "@/store/paperStore";
 import type { Paper } from "@/types";
@@ -17,7 +17,7 @@ export function PaperHeader({ paper }: { paper: Paper }) {
   const retry = usePaperStore((s) => s.retry);
   const [retrying, setRetrying] = useState(false);
   const source = sourceInfo(paper.source);
-  const authors = paper.analysis?.overview?.authors ?? [];
+  const authors = (paper.analysis?.overview?.authors ?? []).map(authorName);
 
   async function onRetry() {
     setRetrying(true);
