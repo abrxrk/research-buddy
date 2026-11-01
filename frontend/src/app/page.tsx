@@ -1,69 +1,83 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { ArrowRight, FileUp, Link2, Sparkles } from "lucide-react";
+import Link from "next/link";
+
+import { FeatureShowcase } from "@/components/landing/FeatureShowcase";
+import { Spotlight } from "@/components/landing/Spotlight";
+import { buttonVariants } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
+
+const STEPS = [
+  { icon: FileUp, title: "Add a paper", text: "Upload a PDF or paste an arXiv, OpenReview, DOI or any paper link." },
+  { icon: Sparkles, title: "We read it", text: "Parsed, chunked and indexed with hybrid search, then analysed automatically." },
+  { icon: Link2, title: "Explore & ask", text: "Browse insights, the knowledge graph, and chat with cited answers." },
+];
+
+export default function LandingPage() {
+  const { user } = useAuth();
+  const cta = user ? "/dashboard" : "/auth";
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="flex-1">
+      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
+        <Link href="/" className="flex items-center gap-2 font-semibold">
+          <span className="grid size-7 place-items-center rounded-lg bg-indigo-600 text-white">R</span>
+          Research Buddy
+        </Link>
+        <Link href={cta} className={buttonVariants({ variant: "ghost" })}>
+          {user ? "Dashboard" : "Sign in"}
+        </Link>
+      </header>
+
+      <Spotlight className="border-b">
+        <section className="mx-auto max-w-3xl px-6 pt-20 pb-24 text-center">
+          <p className="mx-auto mb-6 w-fit rounded-full border bg-background/70 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
+            Your AI reading partner for research papers
           </p>
+          <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-6xl">
+            Understand any paper <span className="text-indigo-600">in minutes</span>, not hours.
+          </h1>
+          <p className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground text-pretty">
+            Upload a paper and get its overview, methods, findings, limitations and a knowledge graph — then ask
+            questions with answers cited to the exact page.
+          </p>
+          <div className="mt-10 flex justify-center gap-3">
+            <Link href={cta} className={cn(buttonVariants({ size: "lg" }), "h-11 px-5 bg-indigo-600 hover:bg-indigo-700")}>
+              Get started <ArrowRight />
+            </Link>
+            <a href="#features" className={cn(buttonVariants({ size: "lg", variant: "outline" }), "h-11 px-5")}>
+              See features
+            </a>
+          </div>
+        </section>
+      </Spotlight>
+
+      <section id="features" className="mx-auto max-w-6xl scroll-mt-10 px-6 py-20">
+        <h2 className="mb-2 text-2xl font-semibold tracking-tight">Everything you need from a paper</h2>
+        <p className="mb-10 text-muted-foreground">Hover a feature to preview it.</p>
+        <FeatureShowcase />
+      </section>
+
+      <section className="border-t bg-muted/30">
+        <div className="mx-auto grid max-w-6xl gap-6 px-6 py-20 md:grid-cols-3">
+          {STEPS.map((s, i) => (
+            <div key={s.title} className="group rounded-2xl border bg-background p-6 transition-all hover:-translate-y-1 hover:shadow-md">
+              <div className="mb-4 flex items-center gap-3">
+                <span className="grid size-9 place-items-center rounded-lg bg-indigo-50 text-indigo-600 transition-colors group-hover:bg-indigo-600 group-hover:text-white">
+                  <s.icon className="size-4" />
+                </span>
+                <span className="text-xs text-muted-foreground">Step {i + 1}</span>
+              </div>
+              <h3 className="font-medium">{s.title}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">{s.text}</p>
+            </div>
+          ))}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </section>
+
+      <footer className="mx-auto max-w-6xl px-6 py-8 text-sm text-muted-foreground">© Research Buddy</footer>
+    </main>
   );
 }
