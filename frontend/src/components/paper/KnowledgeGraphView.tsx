@@ -7,8 +7,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { GraphNodeType, KnowledgeGraph } from "@/types";
 
-// Canvas library touches `window`, so load it client-side only.
-const ForceGraph2D = dynamic(() => import("react-force-graph-2d"), { ssr: false });
+// Canvas library touches `window`, so load it client-side only (wrapper passes the instance via `graphRef`).
+const ForceGraph2D = dynamic(() => import("@/components/paper/ForceGraph"), { ssr: false });
 
 const COLORS: Record<GraphNodeType, string> = {
   concept: "#facc15",
@@ -163,7 +163,7 @@ export function KnowledgeGraphView({ data }: { data: KnowledgeGraph }) {
         <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,oklch(0.88_0.17_95/0.06),transparent_60%)]" />
         {size.w > 0 && (
           <ForceGraph2D
-            ref={setRef as never}
+            graphRef={setRef as never}
             graphData={graph}
             width={size.w}
             height={size.h}
