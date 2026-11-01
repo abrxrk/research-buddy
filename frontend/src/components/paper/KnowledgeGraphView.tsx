@@ -46,8 +46,22 @@ function collide(padding = 14) {
   return force;
 }
 
+/** Pull towards the centre (stronger for unlinked nodes), so nothing drifts off and shrinks "fit to screen". */
+function gravity(strength = 0.05, unlinked = 0.3) {
+  let nodes: GNode[] = [];
+  const force = (alpha: number) => {
+    for (const n of nodes) {
+      const k = (n.degree ? strength : unlinked) * alpha;
+      n.vx = (n.vx ?? 0) - (n.x ?? 0) * k;
+      n.vy = (n.vy ?? 0) - (n.y ?? 0) * k;
+    }
+  };
+  force.initialize = (ns: GNode[]) => (nodes = ns);
+  return force;
+}
+
 type FG = {
-  d3Force: (name: string, fn?: unknown) => { strength?: (n: number) => void; distance?: (n: number) => void } | undefined;
+  d3Force: (name: string, fn?: unknown) => { strength?: (n: number) => unknown; distance?: (n: number) => void; distanceMax?: (n: number) => void } | undefined;
   d3ReheatSimulation: () => void;
   zoomToFit: (ms?: number, pad?: number) => void;
   zoom: { (): number; (k: number, ms?: number): void };
@@ -109,9 +123,12 @@ export function KnowledgeGraphView({ data }: { data: KnowledgeGraph }) {
   const setRef = useCallback((inst: FG | null) => {
     fg.current = inst;
     if (!inst) return;
-    inst.d3Force("charge")?.strength?.(-260);
+    const charge = inst.d3Force("charge");
+    charge?.strength?.(-260);
+    charge?.distanceMax?.(320); // repulsion only between nearby nodes
     inst.d3Force("link")?.distance?.(70);
     inst.d3Force("collide", collide());
+    inst.d3Force("gravity", gravity());
   }, []);
 
   const relations = useMemo(() => {

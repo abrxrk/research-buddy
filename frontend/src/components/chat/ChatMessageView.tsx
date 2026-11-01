@@ -7,8 +7,10 @@ import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
 import type { ChatMessage, Source } from "@/types";
 
-/** Turn [1] citations into links the markdown renderer maps to source chips. */
-const linkCitations = (text: string) => text.replace(/\[(\d{1,2})\](?!\()/g, "[$1](#cite-$1)");
+/** Turn [1] citations into links the markdown renderer maps to source chips. Numbers that aren't one of
+ *  this answer's sources (e.g. "[20]" copied from the paper's own reference list) are left as plain text. */
+const linkCitations = (text: string, valid: Set<number>) =>
+  text.replace(/\[(\d{1,2})\](?!\()/g, (m, n) => (valid.has(Number(n)) ? `[${n}](#cite-${n})` : m));
 
 export function ChatMessageView({ message, onCite, pending }: { message: ChatMessage; onCite: (s: Source) => void; pending?: boolean }) {
   if (message.role === "user")
@@ -38,7 +40,7 @@ export function ChatMessageView({ message, onCite, pending }: { message: ChatMes
               },
             }}
           >
-            {linkCitations(message.content)}
+            {linkCitations(message.content, new Set(byN.keys()))}
           </ReactMarkdown>
         ) : (
           pending && <span className="flex items-center gap-2 text-muted-foreground"><Loader2 className="size-3.5 animate-spin" /> Searching the paper…</span>
