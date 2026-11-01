@@ -27,7 +27,7 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
 
   const res = await fetch(`${API_URL}${path}`, { ...init, headers });
   // Expired/invalid token: clearing the session makes useAuth({required}) redirect to /auth.
-  if (res.status === 401 && token) useAuthStore.getState().logout();
+  if (res.status === 401 && token) useAuthStore.getState().expire();
   if (!res.ok) throw new ApiError(res.status, await errorMessage(res));
   return res;
 }

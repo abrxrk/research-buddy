@@ -7,8 +7,10 @@ type AuthState = {
   token: string | null;
   user: User | null;
   hydrated: boolean; // false until the session is loaded from localStorage
+  signedOut: boolean; // true after the user chose to log out (vs. an expired token)
   setSession: (token: string, user: User) => void;
   logout: () => void;
+  expire: () => void;
 };
 
 export const useAuthStore = create<AuthState>()(
@@ -17,8 +19,10 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       user: null,
       hydrated: false,
-      setSession: (token, user) => set({ token, user }),
-      logout: () => set({ token: null, user: null }),
+      signedOut: false,
+      setSession: (token, user) => set({ token, user, signedOut: false }),
+      logout: () => set({ token: null, user: null, signedOut: true }),
+      expire: () => set({ token: null, user: null }),
     }),
     {
       name: "rb-auth",
