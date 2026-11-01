@@ -10,6 +10,17 @@ export const STATUS_LABEL: Record<PaperStatus, string> = {
   failed: "Failed",
 };
 
+/** Rough pipeline progress for the progress bar. */
+export const STATUS_PROGRESS: Record<PaperStatus, number> = {
+  queued: 6,
+  downloading: 20,
+  parsing: 40,
+  embedding: 62,
+  analyzing: 82,
+  ready: 100,
+  failed: 100,
+};
+
 export const isProcessing = (s: PaperStatus) => s !== "ready" && s !== "failed";
 /** Q&A works once chunks are indexed, i.e. while analysis still runs. */
 export const canChat = (s: PaperStatus) => s === "analyzing" || s === "ready";

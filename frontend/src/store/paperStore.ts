@@ -12,6 +12,7 @@ type PaperState = {
   addFromLink: (url: string) => Promise<Paper>;
   upload: (file: File) => Promise<Paper>;
   remove: (id: string) => Promise<void>;
+  retry: (id: string) => Promise<void>;
 };
 
 export const usePaperStore = create<PaperState>()((set) => ({
@@ -39,5 +40,12 @@ export const usePaperStore = create<PaperState>()((set) => ({
   remove: async (id) => {
     await papersApi.remove(id);
     set((s) => ({ papers: s.papers.filter((p) => p.id !== id) }));
+  },
+  retry: async (id) => {
+    const paper = await papersApi.retry(id);
+    set((s) => ({
+      current: s.current?.id === id ? paper : s.current,
+      papers: s.papers.map((p) => (p.id === id ? paper : p)),
+    }));
   },
 }));

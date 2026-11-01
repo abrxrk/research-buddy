@@ -1,20 +1,19 @@
 "use client";
 
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, BookOpen, FlaskConical, ListChecks, Network, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
 
 import { ChatPanel } from "@/components/chat/ChatPanel";
-import { StatusBadge } from "@/components/dashboard/StatusBadge";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { FindingsSection } from "@/components/paper/FindingsSection";
 import { KnowledgeGraphView } from "@/components/paper/KnowledgeGraphView";
 import { LimitationsSection } from "@/components/paper/LimitationsSection";
 import { MethodologySection } from "@/components/paper/MethodologySection";
 import { OverviewSection } from "@/components/paper/OverviewSection";
-import { ProcessingSteps } from "@/components/paper/ProcessingSteps";
+import { PaperHeader } from "@/components/paper/PaperHeader";
 import { Pending } from "@/components/paper/Section";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { canChat, isProcessing } from "@/helpers/format";
@@ -37,63 +36,65 @@ export function PaperWorkspace() {
   const a = loaded?.analysis ?? {};
   const processing = !!loaded && isProcessing(loaded.status);
   const tabs = [
-    { key: "overview", label: "Overview", body: a.overview && <OverviewSection data={a.overview} /> },
-    { key: "methodology", label: "Methodology", body: a.methodology && <MethodologySection data={a.methodology} /> },
-    { key: "findings", label: "Findings", body: a.findings && <FindingsSection data={a.findings} /> },
-    { key: "limitations", label: "Limitations", body: a.limitations && <LimitationsSection data={a.limitations} /> },
-    { key: "graph", label: "Knowledge graph", body: a.knowledge_graph && <KnowledgeGraphView data={a.knowledge_graph} /> },
+    { key: "overview", label: "Overview", icon: BookOpen, body: a.overview && <OverviewSection data={a.overview} /> },
+    { key: "methodology", label: "Methodology", icon: FlaskConical, body: a.methodology && <MethodologySection data={a.methodology} /> },
+    { key: "findings", label: "Findings", icon: ListChecks, body: a.findings && <FindingsSection data={a.findings} /> },
+    { key: "limitations", label: "Limitations", icon: TriangleAlert, body: a.limitations && <LimitationsSection data={a.limitations} /> },
+    { key: "graph", label: "Knowledge graph", icon: Network, body: a.knowledge_graph && <KnowledgeGraphView data={a.knowledge_graph} /> },
   ];
 
   return (
     <>
       <AppHeader>
-        <Link href="/dashboard" className="flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <Link href="/dashboard" className="flex w-fit items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground">
           <ArrowLeft className="size-4" /> Library
         </Link>
       </AppHeader>
-      <main className="mx-auto grid w-full max-w-7xl flex-1 gap-6 px-4 py-6 lg:grid-cols-[1fr_420px]">
-        {!loaded ? (
-          <div className="h-40 animate-pulse rounded-2xl bg-muted lg:col-span-2" />
-        ) : (
-          <>
-            <div className="min-w-0 space-y-5">
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  <StatusBadge status={loaded.status} />
-                  <span className="capitalize">{loaded.source}</span>
-                  {loaded.page_count && <span>· {loaded.page_count} pages</span>}
-                  {loaded.url && (
-                    <a href={loaded.url} target="_blank" rel="noreferrer" className="flex items-center gap-1 hover:text-foreground">
-                      · Source <ExternalLink className="size-3" />
-                    </a>
-                  )}
+      <div className="relative flex-1">
+        <div aria-hidden className="bg-dots pointer-events-none absolute inset-x-0 top-0 h-[420px] [mask-image:radial-gradient(ellipse_at_top_left,black_10%,transparent_65%)]" />
+        <div aria-hidden className="pointer-events-none absolute -top-40 left-0 h-[380px] w-[700px] rounded-full bg-[radial-gradient(closest-side,oklch(0.88_0.17_95/0.1),transparent)] blur-2xl" />
+        <main className="relative mx-auto grid w-full max-w-7xl gap-8 px-6 py-10 lg:grid-cols-[minmax(0,1fr)_400px]">
+          {!loaded ? (
+            <div className="space-y-4 lg:col-span-2">
+              <div className="h-6 w-60 animate-pulse rounded-full bg-card" />
+              <div className="h-10 w-2/3 animate-pulse rounded-xl bg-card" />
+              <div className="h-64 animate-pulse rounded-2xl bg-card/60" />
+            </div>
+          ) : (
+            <>
+              <div className="min-w-0 space-y-8">
+                <PaperHeader paper={loaded} />
+                {loaded.status !== "failed" && (
+                  <Tabs defaultValue="overview" className="gap-6">
+                    <TabsList className="h-auto! w-full justify-start gap-1 overflow-x-auto rounded-full border bg-white/[0.02] p-1">
+                      {tabs.map((t) => (
+                        <TabsTrigger
+                          key={t.key}
+                          value={t.key}
+                          className="h-8 flex-none gap-1.5 rounded-full px-3.5 text-[13px] data-active:bg-foreground! data-active:text-background!"
+                        >
+                          <t.icon className="size-3.5" /> {t.label}
+                          {!t.body && processing && <span className="size-1.5 animate-pulse rounded-full bg-highlight" />}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                    {tabs.map((t) => (
+                      <TabsContent key={t.key} value={t.key} className="animate-pop">
+                        {t.body || <Pending processing={processing} />}
+                      </TabsContent>
+                    ))}
+                  </Tabs>
+                )}
+              </div>
+              <div className="lg:sticky lg:top-24 lg:h-[calc(100vh-8rem)]">
+                <div className="h-[620px] lg:h-full">
+                  <ChatPanel paperId={loaded.id} enabled={canChat(loaded.status)} />
                 </div>
-                <h1 className="text-2xl font-semibold tracking-tight text-balance">{loaded.title}</h1>
-                {processing && <ProcessingSteps status={loaded.status} />}
-                {loaded.error && <p className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{loaded.error}</p>}
               </div>
-
-              {loaded.status !== "failed" && (
-                <Tabs defaultValue="overview">
-                  <TabsList variant="line" className="w-full justify-start overflow-x-auto">
-                    {tabs.map((t) => <TabsTrigger key={t.key} value={t.key} className="flex-none">{t.label}</TabsTrigger>)}
-                  </TabsList>
-                  {tabs.map((t) => (
-                    <TabsContent key={t.key} value={t.key} className="pt-4">
-                      {t.body || <Pending processing={processing} />}
-                    </TabsContent>
-                  ))}
-                </Tabs>
-              )}
-            </div>
-            <div className="lg:sticky lg:top-20 lg:h-[calc(100vh-6.5rem)]">
-              <div className="h-[600px] lg:h-full">
-                <ChatPanel paperId={loaded.id} enabled={canChat(loaded.status)} />
-              </div>
-            </div>
-          </>
-        )}
-      </main>
+            </>
+          )}
+        </main>
+      </div>
     </>
   );
 }

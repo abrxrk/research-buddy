@@ -60,7 +60,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           autoComplete={signup ? "new-password" : "current-password"}
         />
       </div>
-      <Button type="submit" disabled={loading} className="h-10 bg-indigo-600 hover:bg-indigo-700">
+      <Button type="submit" disabled={loading} className="h-10 rounded-md">
         {loading && <Loader2 className="animate-spin" />}
         {signup ? "Create account" : "Sign in"}
       </Button>

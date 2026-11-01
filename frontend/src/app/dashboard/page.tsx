@@ -3,8 +3,10 @@
 import { useEffect } from "react";
 import { toast } from "sonner";
 
-import { AddPaper } from "@/components/dashboard/AddPaper";
-import { PaperList } from "@/components/dashboard/PaperList";
+import { AddPaperBar } from "@/components/dashboard/AddPaperBar";
+import { DashboardHero } from "@/components/dashboard/DashboardHero";
+import { DropOverlay } from "@/components/dashboard/DropOverlay";
+import { PaperGrid } from "@/components/dashboard/PaperGrid";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { isProcessing } from "@/helpers/format";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,13 +26,17 @@ export default function DashboardPage() {
   return (
     <>
       <AppHeader />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10">
-        <h1 className="text-2xl font-semibold tracking-tight">Your papers</h1>
-        <p className="mb-6 text-muted-foreground">Add a paper to generate insights and chat with it.</p>
-        <AddPaper />
-        <h2 className="mt-10 mb-4 font-medium">Library</h2>
-        <PaperList />
-      </main>
+      <div className="relative flex-1">
+        {/* same aurora + dot grid as the landing page */}
+        <div aria-hidden className="bg-dots pointer-events-none absolute inset-x-0 top-0 h-[520px] [mask-image:radial-gradient(ellipse_at_top,black_15%,transparent_70%)]" />
+        <div aria-hidden className="pointer-events-none absolute -top-48 left-1/2 h-[420px] w-[820px] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,oklch(0.88_0.17_95/0.12),transparent)] blur-2xl" />
+        <main className="relative mx-auto w-full max-w-7xl space-y-10 px-6 py-12">
+          <DashboardHero user={user} papers={papers} />
+          <AddPaperBar />
+          <PaperGrid />
+        </main>
+      </div>
+      <DropOverlay />
     </>
   );
 }

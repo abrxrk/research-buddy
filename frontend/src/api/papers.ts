@@ -1,4 +1,4 @@
-import { api } from "@/api/client";
+import { api, apiFetch } from "@/api/client";
 import type { Paper } from "@/types";
 
 export const papersApi = {
@@ -11,4 +11,14 @@ export const papersApi = {
     return api<Paper>("/papers/upload", { method: "POST", body });
   },
   remove: (id: string) => api<void>(`/papers/${id}`, { method: "DELETE" }),
+  retry: (id: string) => api<Paper>(`/papers/${id}/retry`, { method: "POST" }),
+  /** PDFs need the auth header, so fetch as a blob and open it from a local object URL. */
+  openPdf: async (id: string) => {
+    const tab = window.open("", "_blank"); // open synchronously so popup blockers allow it
+    const blob = await (await apiFetch(`/papers/${id}/pdf`)).blob();
+    const url = URL.createObjectURL(blob);
+    if (tab) tab.location.href = url;
+    else window.location.href = url;
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  },
 };
