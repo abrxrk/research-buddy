@@ -1,15 +1,27 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app import auth
 from app.config import settings
+from app.db import init_indexes
 
-app = FastAPI(title="Research Buddy")
+
+@asynccontextmanager
+async def lifespan(_):
+    await init_indexes()
+    yield
+
+
+app = FastAPI(title="Research Buddy", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[settings.frontend_origin],
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(auth.router)
 
 
 @app.get("/health")
