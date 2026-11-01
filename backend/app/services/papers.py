@@ -7,7 +7,7 @@ from bson import ObjectId
 
 from app.core.config import settings
 from app.core.database import papers
-from app.services import ingestion
+from app.services import ingestion, retrieval
 from app.services.downloader import DownloadError, PaperDownloader
 
 log = logging.getLogger(__name__)
@@ -60,6 +60,7 @@ async def process_paper(paper_id: str, link: str | None = None) -> None:
 
 async def delete_paper(paper_id: str) -> None:
     await asyncio.to_thread(ingestion.delete_chunks, paper_id)
+    retrieval.forget_paper(paper_id)
     pdf_path(paper_id).unlink(missing_ok=True)
     await papers.delete_one({"_id": ObjectId(paper_id)})
 
