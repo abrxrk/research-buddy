@@ -36,7 +36,8 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-4">
+    // method="post" so credentials never end up in the URL if JavaScript fails to load
+    <form method="post" onSubmit={onSubmit} className="grid gap-4">
       {signup && (
         <div className="grid gap-2">
           <Label htmlFor={`${mode}-name`}>Name</Label>
