@@ -244,6 +244,8 @@ Open http://localhost:3000
 | `GET` | `/papers` | List your papers |
 | `GET` | `/papers/{id}` | Paper with status and analysis |
 | `DELETE` | `/papers/{id}` | Delete paper, its vectors and chat |
+| `GET` | `/papers/{id}/pdf` | Original PDF |
+| `POST` | `/papers/{id}/retry` | Re-run processing for a failed paper |
 | `GET` | `/papers/{id}/chat` | Chat history |
 | `POST` | `/papers/{id}/chat` | Ask a question (Server-Sent Events: `sources`, `token`, `done`) |
 | `DELETE` | `/papers/{id}/chat` | Clear chat history |

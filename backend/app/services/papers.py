@@ -61,6 +61,16 @@ async def process_paper(paper_id: str, link: str | None = None) -> None:
         await _set(paper_id, status="failed", error=f"Processing failed: {e}")
 
 
+async def reset_for_retry(paper_id: str) -> None:
+    """Clear partial results so the pipeline can run again from the stored PDF (or link)."""
+    await asyncio.to_thread(ingestion.delete_chunks, paper_id)
+    retrieval.forget_paper(paper_id)
+    await papers.update_one(
+        {"_id": ObjectId(paper_id)},
+        {"$set": {"status": "queued"}, "$unset": {"error": "", "analysis": "", "analysis_errors": ""}},
+    )
+
+
 async def delete_paper(paper_id: str) -> None:
     await asyncio.to_thread(ingestion.delete_chunks, paper_id)
     retrieval.forget_paper(paper_id)
