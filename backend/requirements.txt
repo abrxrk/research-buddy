@@ -1,0 +1,17 @@
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic-settings
+pymongo
+bcrypt
+pyjwt
+email-validator
+httpx
+docling
+sentence-transformers
+einops
+chromadb
+rank-bm25
+langchain-core
+langchain-openai
+langgraph
