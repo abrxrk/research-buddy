@@ -1,19 +1,16 @@
 "use client";
 
 import { ArrowRight, Play } from "lucide-react";
-import Link from "next/link";
 
-import { DEMO_URL } from "@/components/landing/constants";
-import { useAuth } from "@/hooks/useAuth";
+import { APP_URL, DEMO_URL } from "@/components/landing/constants";
 import { useIsDeployed } from "@/hooks/useIsDeployed";
 import { cn } from "@/lib/utils";
 
 /**
- * Main call-to-action. Locally it leads into the app (auth or dashboard);
+ * Main call-to-action. Locally it opens the app's sign-in page;
  * on a deployed domain it becomes "Watch demo" and opens the demo video on GitHub.
  */
 export function PrimaryCta({ label = "Get started", className }: { label?: string; className?: string }) {
-  const { user } = useAuth();
   const deployed = useIsDeployed();
   const base = cn("group flex w-fit items-center gap-2 rounded-full bg-foreground font-medium text-background transition-transform hover:scale-[1.03]", className);
 
@@ -26,9 +23,9 @@ export function PrimaryCta({ label = "Get started", className }: { label?: strin
 
   return (
     // invisible until we know the host, so deployed visitors never see the wrong button flash
-    <Link href={user ? "/dashboard" : "/auth"} className={cn(base, deployed === null && "invisible")}>
-      {user ? "Dashboard" : label}
+    <a href={`${APP_URL}/auth`} className={cn(base, deployed === null && "invisible")}>
+      {label}
       <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
-    </Link>
+    </a>
   );
 }

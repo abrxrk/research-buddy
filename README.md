@@ -146,16 +146,24 @@ research-buddy/
 │   │   └── helpers/             # llm, embeddings, reranker, text
 │   ├── requirements.txt
 │   └── .env.example
-└── frontend/
+├── frontend/                    # the web app (port 3000)
+│   └── src/
+│       ├── app/                 # routes: /auth, /dashboard, /papers/[id]  (/ redirects to the dashboard)
+│       ├── api/                 # client.ts, auth.ts, papers.ts, chat.ts
+│       ├── store/               # Zustand stores: auth, papers, chat
+│       ├── components/          # ui/ (shadcn), common/, auth/, dashboard/, paper/, chat/, layout/
+│       ├── hooks/               # useAuth, usePolling, useAddPaper
+│       ├── helpers/             # format, sse, source, urls
+│       └── types/
+└── landing/                     # standalone marketing site (port 3001), deploys on its own
+    ├── public/logos/            # tech-stack logos
     └── src/
-        ├── app/                 # routes: /, /auth, /dashboard, /papers/[id]
-        ├── api/                 # client.ts, auth.ts, papers.ts, chat.ts
-        ├── store/               # Zustand stores: auth, papers, chat
-        ├── components/          # ui/ (shadcn), landing/, auth/, dashboard/, paper/, chat/, layout/
-        ├── hooks/               # useAuth, usePolling
-        ├── helpers/             # format, sse
-        └── types/
+        ├── app/                 # single page: /
+        ├── components/          # landing/ sections, common/ (motion helpers), layout/ (logo)
+        └── hooks/               # useIsDeployed
 ```
+
+The **landing page** is its own Next.js app with no backend or auth code, so it can be deployed by itself (Vercel, Netlify, any static host — it builds to static HTML). On localhost its buttons open the app; on a deployed domain they become **Watch demo** and link to the demo video in this README.
 
 ---
 
@@ -208,6 +216,17 @@ npm run dev
 
 Open http://localhost:3000
 
+### 4. Landing page (optional)
+
+```bash
+cd landing
+npm install
+cp .env.example .env.local   # NEXT_PUBLIC_APP_URL=http://localhost:3000
+npm run dev
+```
+
+Open http://localhost:3001
+
 ### Environment variables
 
 **`backend/.env`**
@@ -229,6 +248,13 @@ Open http://localhost:3000
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `NEXT_PUBLIC_API_URL` | Backend URL | `http://localhost:8000` |
+| `NEXT_PUBLIC_LANDING_URL` | Where "Log out" takes you | `http://localhost:3001` |
+
+**`landing/.env.local`**
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `NEXT_PUBLIC_APP_URL` | App URL the landing buttons open (when running locally) | `http://localhost:3000` |
 
 ---
 

@@ -1,25 +1,6 @@
-import { CtaSection } from "@/components/landing/CtaSection";
-import { FeatureBento } from "@/components/landing/FeatureBento";
-import { Hero } from "@/components/landing/Hero";
-import { HowItWorks } from "@/components/landing/HowItWorks";
-import { LogoMarquee } from "@/components/landing/LogoMarquee";
-import { RetrievalFlow } from "@/components/landing/RetrievalFlow";
-import { SiteFooter } from "@/components/landing/SiteFooter";
-import { SiteNav } from "@/components/landing/SiteNav";
+import { redirect } from "next/navigation";
 
-export default function LandingPage() {
-  return (
-    <>
-      <SiteNav />
-      <main className="flex-1">
-        <Hero />
-        <LogoMarquee />
-        <HowItWorks />
-        <FeatureBento />
-        <RetrievalFlow />
-        <CtaSection />
-      </main>
-      <SiteFooter />
-    </>
-  );
+// The marketing site lives in /landing; the app starts at the dashboard (which sends logged-out users to /auth).
+export default function Home() {
+  redirect("/dashboard");
 }

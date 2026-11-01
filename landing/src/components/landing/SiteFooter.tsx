@@ -6,7 +6,6 @@ const LINKS = [
   ["How it works", "#how"],
   ["Features", "#features"],
   ["Under the hood", "#retrieval"],
-  ["Dashboard", "/dashboard"],
 ];
 
 export function SiteFooter() {

@@ -4,9 +4,10 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { AuthForm } from "@/components/auth/AuthForm";
-import { PaperDemo } from "@/components/landing/PaperDemo";
+import { PaperDemo } from "@/components/auth/PaperDemo";
 import { Logo } from "@/components/layout/Logo";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LANDING_URL } from "@/helpers/urls";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function AuthPage() {
@@ -20,7 +21,7 @@ export default function AuthPage() {
   return (
     <main className="grid min-h-screen flex-1 lg:grid-cols-2">
       <div className="flex flex-col px-6 py-6 sm:px-12">
-        <Logo />
+        <Logo href={LANDING_URL} />
         <div className="animate-pop mx-auto my-auto w-full max-w-sm py-12">
           <h1 className="text-3xl font-semibold tracking-[-0.03em]">
             Welcome to your <span className="font-serif font-normal italic">reading room.</span>
