@@ -3,9 +3,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app import auth
-from app.config import settings
-from app.db import init_indexes
+from app.api.routes import auth
+from app.core.config import settings
+from app.core.database import init_indexes
 
 
 @asynccontextmanager
