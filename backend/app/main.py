@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import auth, papers
+from app.api.routes import auth, chat, papers
 from app.core.config import settings
 from app.core.database import init_indexes
 from app.services.papers import fail_interrupted
@@ -28,6 +28,7 @@ app.add_middleware(
 )
 app.include_router(auth.router)
 app.include_router(papers.router)
+app.include_router(chat.router)
 
 
 @app.get("/health")

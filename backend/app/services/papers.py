@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from bson import ObjectId
 
 from app.core.config import settings
-from app.core.database import papers
+from app.core.database import chats, papers
 from app.services import ingestion, retrieval
 from app.services.analysis import run_analysis
 from app.services.downloader import DownloadError, PaperDownloader
@@ -65,6 +65,7 @@ async def delete_paper(paper_id: str) -> None:
     await asyncio.to_thread(ingestion.delete_chunks, paper_id)
     retrieval.forget_paper(paper_id)
     pdf_path(paper_id).unlink(missing_ok=True)
+    await chats.delete_many({"paper_id": paper_id})
     await papers.delete_one({"_id": ObjectId(paper_id)})
 
 
