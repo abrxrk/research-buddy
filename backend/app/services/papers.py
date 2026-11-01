@@ -8,6 +8,7 @@ from bson import ObjectId
 from app.core.config import settings
 from app.core.database import papers
 from app.services import ingestion, retrieval
+from app.services.analysis import run_analysis
 from app.services.downloader import DownloadError, PaperDownloader
 
 log = logging.getLogger(__name__)
@@ -50,7 +51,9 @@ async def process_paper(paper_id: str, link: str | None = None) -> None:
                 raise ValueError("No text could be extracted from this PDF.")
             await _set(paper_id, status="embedding", markdown=markdown, page_count=pages)
             await asyncio.to_thread(ingestion.store_chunks, paper_id, chunks)
-        await _set(paper_id, status="ready", chunk_count=len(chunks))
+        await _set(paper_id, status="analyzing", chunk_count=len(chunks))
+        await run_analysis(paper_id, markdown)
+        await _set(paper_id, status="ready")
     except DownloadError as e:
         await _set(paper_id, status="failed", error=str(e))
     except Exception as e:

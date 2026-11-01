@@ -1,8 +1,11 @@
 """Nomic embeddings (local). Nomic needs task prefixes on every input."""
+import threading
 from functools import lru_cache
 
 EMBED_MODEL = "nomic-ai/nomic-embed-text-v1.5"
 MAX_TOKENS = 512  # chunk size; nomic supports up to 8192, smaller chunks retrieve better
+# ponytail: one lock serialises loading + inference (nomic's rotary cache isn't thread-safe); fine at ~10ms/query.
+_lock = threading.Lock()
 
 
 @lru_cache
@@ -13,9 +16,11 @@ def _model():
 
 
 def embed_documents(texts: list[str]) -> list[list[float]]:
-    vecs = _model().encode([f"search_document: {t}" for t in texts], batch_size=16, normalize_embeddings=True)
+    with _lock:
+        vecs = _model().encode([f"search_document: {t}" for t in texts], batch_size=16, normalize_embeddings=True)
     return vecs.tolist()
 
 
 def embed_query(text: str) -> list[float]:
-    return _model().encode(f"search_query: {text}", normalize_embeddings=True).tolist()
+    with _lock:
+        return _model().encode(f"search_query: {text}", normalize_embeddings=True).tolist()
