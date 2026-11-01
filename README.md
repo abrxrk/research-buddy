@@ -201,6 +201,8 @@ cp .env.example .env
 .venv/bin/uvicorn app.main:app --reload --port 8000
 ```
 
+Or simply run **`bash start.sh`** from `backend/`. It finds (or creates) the virtualenv, activates it, installs `requirements.txt` only when it has changed, checks `.env` and MongoDB, then starts the server on port 8000 with auto-reload (`PORT=9000 bash start.sh` or `bash start.sh --no-reload` to change that).
+
 API docs: http://localhost:8000/docs
 
 > **First run:** Docling, Nomic and the reranker download their models (~1–2 GB) the first time a paper is processed, so the first paper takes a few extra minutes.
