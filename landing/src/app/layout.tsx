@@ -7,9 +7,17 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 const instrument = Instrument_Serif({ variable: "--font-instrument", subsets: ["latin"], weight: "400", style: ["normal", "italic"] });
 
+const title = "Research Buddy — understand research papers with AI";
+const description = "Overviews, methods, findings, limitations, knowledge graphs and page-cited answers for any research paper.";
+
 export const metadata: Metadata = {
-  title: "Research Buddy — understand research papers with AI",
-  description: "Overviews, methods, findings, limitations, knowledge graphs and page-cited answers for any research paper.",
+  // Absolute base so the generated preview image URL works in WhatsApp, Slack, X, LinkedIn…
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://research-buddy.abrark.xyz"),
+  title,
+  description,
+  applicationName: "Research Buddy",
+  openGraph: { title, description, url: "/", siteName: "Research Buddy", type: "website", locale: "en_US" },
+  twitter: { card: "summary_large_image", title, description },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
