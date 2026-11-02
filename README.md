@@ -8,7 +8,7 @@
 
 [![Research Buddy demo: upload a paper, get a breakdown, ask a question](docs/demo-thumbnail.png)](docs/demo.mp4)
 
-_60-second walkthrough: upload "Attention Is All You Need", explore the generated breakdown and knowledge graph, then ask a question with cited answers. Click to play._
+
 
 ---
 
