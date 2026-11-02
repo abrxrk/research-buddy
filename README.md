@@ -6,9 +6,7 @@
 
 ## Demo
 
-[![Research Buddy demo: upload a paper, get a breakdown, ask a question](docs/demo-thumbnail.png)](docs/demo.mp4)
-
-
+https://github.com/user-attachments/assets/737704ea-77b2-478b-916f-4573a76dcf7f
 
 ---
 
