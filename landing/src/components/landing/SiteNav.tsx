@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 const LINKS = [
   ["How it works", "#how"],
   ["Features", "#features"],
+  ["Across papers", "#across"],
   ["Under the hood", "#retrieval"],
 ];
 
@@ -29,19 +30,19 @@ export function SiteNav() {
       <header
         className={cn(
           "pointer-events-auto flex w-full items-center gap-6 rounded-full border px-3 py-2 pl-4 transition-all duration-500",
-          scrolled ? "max-w-3xl border-white/10 bg-zinc-950/70 shadow-2xl backdrop-blur-xl" : "max-w-6xl border-transparent bg-transparent",
+          scrolled ? "max-w-4xl border-white/10 bg-zinc-950/70 shadow-2xl backdrop-blur-xl" : "max-w-6xl border-transparent bg-transparent",
         )}
       >
         <Logo />
         <nav className="mx-auto hidden items-center gap-1 text-sm text-muted-foreground md:flex">
           {LINKS.map(([label, href]) => (
-            <a key={href} href={href} className="rounded-full px-3 py-1.5 transition-colors hover:bg-white/5 hover:text-foreground">{label}</a>
+            <a key={href} href={href} className="rounded-full px-3 py-1.5 whitespace-nowrap transition-colors hover:bg-white/5 hover:text-foreground">{label}</a>
           ))}
         </nav>
         <a href={GITHUB_URL} target="_blank" rel="noreferrer" aria-label="GitHub" className="ml-auto grid size-9 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground md:ml-0">
           <GithubIcon />
         </a>
-        <PrimaryCta className="px-4 py-2 text-sm" />
+        <PrimaryCta className="px-4 py-2 text-sm whitespace-nowrap" />
       </header>
     </div>
   );

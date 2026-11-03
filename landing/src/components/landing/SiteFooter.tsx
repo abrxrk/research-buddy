@@ -5,6 +5,7 @@ import { Logo } from "@/components/layout/Logo";
 const LINKS = [
   ["How it works", "#how"],
   ["Features", "#features"],
+  ["Across papers", "#across"],
   ["Under the hood", "#retrieval"],
 ];
 

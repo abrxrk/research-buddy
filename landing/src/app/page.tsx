@@ -1,3 +1,4 @@
+import { AcrossPapers } from "@/components/landing/AcrossPapers";
 import { CtaSection } from "@/components/landing/CtaSection";
 import { FeatureBento } from "@/components/landing/FeatureBento";
 import { Hero } from "@/components/landing/Hero";
@@ -16,6 +17,7 @@ export default function LandingPage() {
         <LogoMarquee />
         <HowItWorks />
         <FeatureBento />
+        <AcrossPapers />
         <RetrievalFlow />
         <CtaSection />
       </main>

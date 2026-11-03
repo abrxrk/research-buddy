@@ -7,7 +7,7 @@ const STEPS = [
   { icon: FileUp, title: "Drop a paper", text: "Upload a PDF or paste an arXiv, OpenReview, DOI or ACL link." },
   { icon: ScanText, title: "We read it", text: "Docling parses the layout; chunks keep their pages and section headings." },
   { icon: Sparkles, title: "Insights appear", text: "An agent writes the overview, methods, findings, limitations and graph." },
-  { icon: MessageSquareQuote, title: "Ask anything", text: "Get answers grounded in the paper, each claim cited to its page." },
+  { icon: MessageSquareQuote, title: "Ask and compare", text: "Ask one paper or your whole library, or compare papers. Every claim is cited to its page." },
 ];
 
 export function HowItWorks() {

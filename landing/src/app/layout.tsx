@@ -8,7 +8,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 const instrument = Instrument_Serif({ variable: "--font-instrument", subsets: ["latin"], weight: "400", style: ["normal", "italic"] });
 
 const title = "Research Buddy — understand research papers with AI";
-const description = "Overviews, methods, findings, limitations, knowledge graphs and page-cited answers for any research paper.";
+const description = "Overviews, methods, findings, limitations, knowledge graphs and page-cited answers for any research paper. Ask across your whole library and compare papers side by side.";
 
 export const metadata: Metadata = {
   // Absolute base so the generated preview image URL works in WhatsApp, Slack, X, LinkedIn…
