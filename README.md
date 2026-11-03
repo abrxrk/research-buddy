@@ -1,3 +1,5 @@
+
+
 # Research Buddy
 
 **Your AI reading partner for research papers.** Upload a PDF or paste a paper link. Research Buddy reads the paper, generates a structured breakdown and a knowledge graph, and lets you ask questions with answers cited to the exact page and section. Ask across your whole library at once, or compare 2–5 papers side by side.
@@ -6,7 +8,8 @@
 
 ## Demo
 
-https://github.com/user-attachments/assets/737704ea-77b2-478b-916f-4573a76dcf7f
+https://github.com/user-attachments/assets/e5f5d795-25cc-41c5-a869-10d635955ee2
+
 
 ---
 
