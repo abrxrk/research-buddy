@@ -14,6 +14,8 @@ class Source(BaseModel):
     pages: str
     section: str
     text: str
+    paper_id: str | None = None  # set on new messages; older ones predate multi-paper chat
+    paper_title: str | None = None
 
 
 class ChatMessage(BaseModel):

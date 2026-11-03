@@ -1,53 +1,54 @@
-import { Check, Download, FileSearch, Layers, Sparkles } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 
+import { TimeAgo } from "@/components/ui/time-ago";
+import { STATUS_LABEL, STEPS } from "@/helpers/format";
 import { cn } from "@/lib/utils";
 import type { PaperStatus } from "@/types";
 
-const STEPS: { key: PaperStatus; label: string; icon: typeof Check }[] = [
-  { key: "downloading", label: "Download", icon: Download },
-  { key: "parsing", label: "Parse PDF", icon: FileSearch },
-  { key: "embedding", label: "Index chunks", icon: Layers },
-  { key: "analyzing", label: "Generate insights", icon: Sparkles },
-];
-const ORDER: PaperStatus[] = ["queued", "downloading", "parsing", "embedding", "analyzing", "ready"];
+/** What the pipeline is doing right now, as a short checklist with a progress bar. */
+export function ProcessingSteps({ status, since }: { status: PaperStatus; since?: string }) {
+  const at = status === "queued" ? -1 : STEPS.indexOf(status);
+  const done = Math.max(at, 0);
+  const pct = ((done + 0.5) / STEPS.length) * 100;
 
-/** Horizontal stepper with a filling rail; the active step pulses. */
-export function ProcessingSteps({ status }: { status: PaperStatus }) {
-  const at = ORDER.indexOf(status);
-  const done = STEPS.filter((s) => at > ORDER.indexOf(s.key)).length;
   return (
-    <div className="relative overflow-hidden rounded-2xl border bg-card/50 p-5">
-      <div className="bg-dots absolute inset-0 opacity-40" />
-      <div className="relative">
-        <div className="absolute top-4 right-[12.5%] left-[12.5%] h-px bg-white/10">
-          <div className="h-full bg-highlight transition-[width] duration-700" style={{ width: `${(done / (STEPS.length - 1)) * 100}%` }} />
-        </div>
-        <ol className="relative grid grid-cols-4">
-          {STEPS.map((s) => {
-            const i = ORDER.indexOf(s.key);
-            const complete = at > i;
-            const active = at === i;
-            return (
-              <li key={s.key} className="flex flex-col items-center gap-2 text-center">
-                <span
-                  className={cn(
-                    "relative grid size-8 place-items-center rounded-full border bg-background transition-colors",
-                    complete && "border-highlight bg-highlight text-zinc-900",
-                    active && "border-highlight text-highlight",
-                  )}
-                >
-                  {active && <span className="absolute inset-0 animate-ping rounded-full border border-highlight/60" />}
-                  {complete ? <Check className="size-4" /> : <s.icon className="size-3.5" />}
-                </span>
-                <span className={cn("text-xs", complete || active ? "text-foreground" : "text-muted-foreground")}>{s.label}</span>
-              </li>
-            );
-          })}
-        </ol>
-        {status === "analyzing" && (
-          <p className="mt-4 text-center text-xs text-muted-foreground">You can already ask questions in the chat while insights are being written.</p>
-        )}
+    <div className="rounded-lg border p-4 text-sm" role="status" aria-live="polite">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <p className="font-medium">
+          {at < 0 ? "Waiting for a free worker" : `Step ${at + 1} of ${STEPS.length}: ${STATUS_LABEL[status]}`}
+        </p>
+        {since && <TimeAgo iso={since} prefix="Added" className="text-xs text-muted-foreground" />}
       </div>
+      <p className="mt-0.5 text-muted-foreground">
+        {status === "analyzing"
+          ? "The paper is indexed, so you can already ask questions in the chat while the summary is written."
+          : "This usually takes a few minutes. The page updates on its own, no need to refresh."}
+      </p>
+
+      <div className="mt-3 h-1 overflow-hidden rounded-full bg-muted" aria-hidden>
+        <div className="h-full rounded-full bg-highlight transition-[width] duration-500 ease-out" style={{ width: `${at < 0 ? 4 : pct}%` }} />
+      </div>
+
+      <ol className="mt-3 grid gap-x-4 gap-y-1.5 sm:grid-cols-4">
+        {STEPS.map((s, i) => {
+          const state = i < at ? "done" : i === at ? "now" : "todo";
+          return (
+            <li
+              key={s}
+              className={cn("flex items-center gap-2 text-xs", state === "todo" && "text-muted-foreground", state === "now" && "font-medium")}
+              aria-current={state === "now" ? "step" : undefined}
+            >
+              <span className="grid size-4 shrink-0 place-items-center">
+                {state === "done" && <Check className="size-3.5 text-emerald-400" aria-label="done" />}
+                {state === "now" && <Loader2 className="size-3.5 animate-spin text-highlight" aria-label="in progress" />}
+                {state === "todo" && <span className="size-1.5 rounded-full bg-muted-foreground/40" />}
+              </span>
+              <span className="font-mono text-[10.5px] text-muted-foreground tabular-nums">{i + 1}</span>
+              {STATUS_LABEL[s]}
+            </li>
+          );
+        })}
+      </ol>
     </div>
   );
 }

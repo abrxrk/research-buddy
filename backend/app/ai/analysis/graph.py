@@ -1,5 +1,4 @@
 """LangGraph workflow: generates the 5 paper insight sections in parallel, each grounded in retrieved chunks."""
-import asyncio
 import logging
 import operator
 from typing import Annotated, TypedDict
@@ -7,9 +6,9 @@ from typing import Annotated, TypedDict
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END, START, StateGraph
 
-from app.helpers.llm import get_structured_llm
-from app.models.analysis import Findings, KnowledgeGraph, Limitations, Methodology, Overview
-from app.services.retrieval import retrieve
+from app.ai.analysis.schemas import Findings, KnowledgeGraph, Limitations, Methodology, Overview
+from app.ai.llm import get_structured_llm
+from app.ai.rag.retrieval import build_context
 
 log = logging.getLogger(__name__)
 HEAD_CHARS = 6000  # start of the paper: title, authors, abstract, intro
@@ -28,20 +27,10 @@ class AnalysisState(TypedDict):
     errors: Annotated[list, operator.add]
 
 
-async def _context(paper_id: str, queries: list[str], k: int = 5) -> str:
-    hits = await asyncio.gather(*(asyncio.to_thread(retrieve, paper_id, q, k) for q in queries))
-    seen, parts = set(), []
-    for chunk in (c for group in hits for c in group):
-        if chunk["id"] not in seen:
-            seen.add(chunk["id"])
-            parts.append(f"[page {chunk['pages']} | {chunk['section'] or 'n/a'}]\n{chunk['text']}")
-    return "\n\n---\n\n".join(parts)
-
-
 def _section(key: str, schema, task: str, queries: list[str], use_head: bool = False):
     async def node(state: AnalysisState) -> dict:
         try:
-            ctx = await _context(state["paper_id"], queries)
+            ctx = await build_context(state["paper_id"], queries)
             if use_head:
                 ctx = f"[start of paper]\n{state['head']}\n\n---\n\n{ctx}"
             out = await get_structured_llm(schema).ainvoke(

@@ -1,6 +1,6 @@
 # Research Buddy
 
-**Your AI reading partner for research papers.** Upload a PDF or paste a paper link. Research Buddy reads the paper, generates a structured breakdown and a knowledge graph, and lets you ask questions with answers cited to the exact page and section.
+**Your AI reading partner for research papers.** Upload a PDF or paste a paper link. Research Buddy reads the paper, generates a structured breakdown and a knowledge graph, and lets you ask questions with answers cited to the exact page and section. Ask across your whole library at once, or compare 2–5 papers side by side.
 
 ---
 
@@ -23,7 +23,27 @@ When a paper is added, Research Buddy automatically generates:
 | 5 | **Knowledge graph** | Interactive graph of concepts, methods, models, datasets, tasks and metrics and how they relate |
 | 6 | **Interactive Q&A** | Chat with the paper; answers stream in with clickable citations showing the page, section and source text |
 
+Across papers:
+
+| # | Feature | What you get |
+|---|---------|--------------|
+| 7 | **Library chat** | Ask questions across all your indexed papers from the dashboard; each citation shows which paper the passage came from |
+| 8 | **Paper comparison** | Select 2–5 ready papers and compare them: an overview plus Methodology, Datasets & Metrics, Results and Limitations, each with similarities, differences and a side-by-side table, and a chat scoped to those papers. Comparisons are saved, so you can reopen, retry or delete them |
+
 Supported sources: **PDF upload**, **arXiv** (links or IDs like `1706.03762`), **OpenReview**, **DOI**, **ACL Anthology**, direct `.pdf` links, and any page that exposes a `citation_pdf_url` meta tag.
+
+### Interface
+
+The app uses one layout everywhere: a sidebar (library, every paper and comparison with a live status dot, account menu), the page content, and a chat panel pinned on the right. It follows the same dark theme as the landing page, with highlighter yellow reserved for primary actions, selection and citations.
+
+| Where | Keyboard shortcuts |
+|-------|--------------------|
+| Everywhere | `⌘K` search and jump · `⌥↓` / `⌥↑` next / previous paper · `?` all shortcuts · `Esc` close |
+| Library | `/` search · `j` / `k` move · `Enter` open · `x` select for comparison · `⌫` delete · `⌘V` paste a paper link |
+| Paper and comparison | `1`–`5` switch tab · `/` filter findings or find a concept · `f` / `0` / `=` / `-` concept-map full screen, fit, zoom |
+| Chat | `⌘J` focus · `Enter` send · `Shift+Enter` new line · `↑` recall last question · `Esc` stop the answer |
+
+On Windows and Linux, `⌘` is `Ctrl`.
 
 ---
 
@@ -37,7 +57,7 @@ Supported sources: **PDF upload**, **arXiv** (links or IDs like `1706.03762`), *
 
 **Backend & AI**
 - [FastAPI](https://fastapi.tiangolo.com/) with JWT auth (bcrypt + PyJWT)
-- [MongoDB](https://www.mongodb.com/) (local) for users, papers, analysis and chat history
+- [MongoDB](https://www.mongodb.com/) (local) for users, papers, analysis, comparisons and chat history
 - [ChromaDB](https://www.trychroma.com/) (embedded, persistent) as the vector store
 - [Docling](https://github.com/docling-project/docling) for PDF parsing and its **HybridChunker** for chunking
 - [Nomic Embed v1.5](https://huggingface.co/nomic-ai/nomic-embed-text-v1.5) for embeddings (runs locally)
@@ -54,7 +74,15 @@ Supported sources: **PDF upload**, **arXiv** (links or IDs like `1706.03762`), *
 
 ```
 Landing page ──▶ Sign up / Sign in ──▶ Dashboard ──▶ Upload PDF or paste link
-                                                            │
+                                          │                 │
+                                          ├─ Library chat: ask across all your papers
+                                          │    → citations name the paper, page & section
+                                          │
+                                          ├─ Select 2–5 ready papers → Compare
+                                          │    → Status: Queued → Briefing → Synthesizing → Ready
+                                          │    → Tabs: Overview · Methodology · Datasets & Metrics · Results · Limitations
+                                          │    → Chat scoped to the compared papers
+                                          │                 │
                      ┌──────────────────────────────────────┘
                      ▼
         Status: Downloading → Parsing → Indexing → Analysing → Ready
@@ -107,6 +135,32 @@ Question ──▶ (follow-ups rewritten into standalone queries)
    LLM answers with numbered citations (streamed over SSE)
 ```
 
+The same pipeline serves all three chats; it just runs over a different set of papers: one paper, the whole library (every paper that is analysing or ready), or the papers in a comparison. With more than one paper, Chroma filters with `$in`, a BM25 index is built per set of papers and cached, identical chunks (e.g. a paper uploaded twice) are deduplicated before reranking, and each paper may fill at most 3 of the 5 passages so one paper can't crowd out the rest. The prompt asks the model to name the paper behind each claim.
+
+### Comparison pipeline (multi-agent)
+
+```
+Selected papers (2–5, all ready)
+               │
+     START ── Send ──┬──────────────┬──────────────┐
+                     ▼              ▼              ▼
+               Paper agent 1   Paper agent 2   Paper agent N      (≤ 2 LLM calls at once)
+               stored analysis + 4 targeted hybrid-retrieval queries over that paper
+                     │              │              │
+                     ▼              ▼              ▼
+                PaperBrief      PaperBrief     PaperBrief         (problem, approach, datasets,
+                     └──────────────┼──────────────┘               metrics, results, strengths, limitations)
+                                    ▼
+                          Orchestrator (synthesize)
+                                    ▼
+          Comparison: overview + Methodology · Datasets & Metrics · Results · Limitations
+          (summary, similarities, differences, each paper's position)
+                                    ▼
+                         MongoDB (`comparisons`)
+```
+
+Each paper agent works from that paper's stored analysis (overview, methodology, findings, limitations) plus retrieval on setups, results vs. baselines, method and limitations. Briefs are intermediate and not stored; only the final comparison is saved.
+
 ### LLM fallback chain
 
 Structured outputs (the 5 analysis sections) use OpenRouter's `json_schema` mode with `require_parameters`, so only models that enforce the schema are used. Models are tried in order:
@@ -130,21 +184,32 @@ research-buddy/
 │   │   ├── main.py              # FastAPI app, CORS, routers
 │   │   ├── api/
 │   │   │   ├── deps.py          # auth dependency (current_user)
-│   │   │   └── routes/          # auth.py, papers.py, chat.py
-│   │   ├── core/                # config, database, vectorstore, security
-│   │   ├── models/              # Pydantic schemas (user, paper, analysis, chat)
-│   │   ├── services/            # downloader, ingestion, retrieval, analysis, qa, papers
-│   │   ├── agents/              # LangGraph graphs: analysis_graph.py, qa_graph.py
-│   │   └── helpers/             # llm, embeddings, reranker, text
+│   │   │   └── routes/          # auth.py, papers.py, comparisons.py, chat.py (paper, library & comparison chats)
+│   │   ├── ai/                  # all AI code, one folder per feature
+│   │   │   ├── llm.py           # OpenRouter models + fallback chain (shared)
+│   │   │   ├── rag/             # ingestion (Docling → chunks → Chroma), hybrid retrieval, embeddings, reranker
+│   │   │   ├── analysis/        # per-paper insights: graph.py, service.py, schemas.py
+│   │   │   ├── chat/            # Q&A for paper / library / comparison chats: graph.py, service.py, schemas.py
+│   │   │   └── comparison/      # multi-agent comparison: graph.py, service.py, schemas.py
+│   │   ├── core/                # config, database, security
+│   │   ├── models/              # user and paper schemas
+│   │   └── services/            # paper lifecycle (papers.py) and downloader
 │   ├── requirements.txt
 │   └── .env.example
 ├── frontend/                    # the web app (port 3000)
 │   └── src/
-│       ├── app/                 # routes: /auth, /dashboard, /papers/[id]  (/ redirects to the dashboard)
-│       ├── api/                 # client.ts, auth.ts, papers.ts, chat.ts
-│       ├── store/               # Zustand stores: auth, papers, chat
-│       ├── components/          # ui/ (shadcn), common/, auth/, dashboard/, paper/, chat/, layout/
-│       ├── hooks/               # useAuth, usePolling, useAddPaper
+│       ├── app/                 # routes: /auth, /dashboard, /papers/[id], /comparisons/[id]  (/ redirects to the dashboard)
+│       ├── api/                 # client.ts, auth.ts, papers.ts, chat.ts, comparisons.ts
+│       ├── store/               # Zustand stores: auth, papers, chat, comparisons
+│       ├── components/
+│       │   ├── layout/          # app shell: sidebar, ⌘K command palette, shortcuts dialog, user menu, section tabs
+│       │   ├── dashboard/       # add-paper bar, library table, compare bar, drop overlay
+│       │   ├── paper/           # paper header + Overview / Methodology / Findings / Limitations / concept map
+│       │   ├── comparison/      # comparison page
+│       │   ├── chat/            # chat panel shared by paper, library and comparison chats
+│       │   ├── auth/            # sign-in form + product showcase
+│       │   └── ui/              # shadcn/Base UI wrappers + tooltip, kbd, copy button, time-ago, skeleton, empty state
+│       ├── hooks/               # useAuth, usePolling, useAddPaper, useHotkey, useDocumentTitle
 │       ├── helpers/             # format, sse, source, urls
 │       └── types/
 └── landing/                     # standalone marketing site (port 3001), deploys on its own
@@ -269,11 +334,20 @@ Open http://localhost:3001
 | `GET` | `/papers/{id}/chat` | Chat history |
 | `POST` | `/papers/{id}/chat` | Ask a question (Server-Sent Events: `sources`, `token`, `done`) |
 | `DELETE` | `/papers/{id}/chat` | Clear chat history |
+| `GET` / `POST` / `DELETE` | `/library/chat` | Library chat: history / ask across all your papers (SSE) / clear |
+| `POST` | `/comparisons` | Start a comparison of 2–5 unique ready papers (`422` bad ids, `404` not yours, `409` not ready) |
+| `GET` | `/comparisons` | List your comparisons |
+| `GET` | `/comparisons/{id}` | Comparison with status and result |
+| `DELETE` | `/comparisons/{id}` | Delete a finished or failed comparison and its chat |
+| `POST` | `/comparisons/{id}/retry` | Re-run a failed comparison |
+| `GET` / `POST` / `DELETE` | `/comparisons/{id}/chat` | Chat over the compared papers: history / ask (SSE) / clear |
+
+Chat history is stored per scope: the paper id, `library:<user_id>` or `comparison:<id>`.
 
 ---
 
 ## Notes
 
-- **Free-model limits:** OpenRouter allows ~20 requests/min and 50/day on free models (1000/day once you've bought $10 of credits). Each paper uses 5 calls for analysis, plus about 1–2 per chat question. Free models can be slow, so analysis can take a few minutes.
+- **Free-model limits:** OpenRouter allows ~20 requests/min and 50/day on free models (1000/day once you've bought $10 of credits). Each paper uses 5 calls for analysis, plus about 1–2 per chat question; a comparison of N papers uses N + 1. Free models can be slow, so analysis can take a few minutes.
 - One paper is ingested at a time to keep memory use reasonable.
-- If the server restarts mid-processing, that paper is marked failed. Re-upload it to try again.
+- If the server restarts mid-processing, that paper is marked failed. Re-upload it to try again. A comparison interrupted the same way is marked failed and can be retried.

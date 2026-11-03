@@ -4,6 +4,11 @@ import { Maximize2, Minimize2, Minus, Plus, Scan, Search, X } from "lucide-react
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { Button } from "@/components/ui/button";
+import { Kbd } from "@/components/ui/kbd";
+import { Tip } from "@/components/ui/tooltip";
+import { plural } from "@/helpers/format";
+import { useHotkey } from "@/hooks/useHotkey";
 import { cn } from "@/lib/utils";
 import type { GraphNodeType, KnowledgeGraph } from "@/types";
 
@@ -78,17 +83,33 @@ export function KnowledgeGraphView({ data }: { data: KnowledgeGraph }) {
   const [hidden, setHidden] = useState<Set<GraphNodeType>>(new Set());
   const [query, setQuery] = useState("");
   const [full, setFull] = useState(false);
+  const search = useRef<HTMLInputElement>(null);
+  const root = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const ro = new ResizeObserver(([e]) => setSize({ w: e.contentRect.width, h: e.contentRect.height }));
     ro.observe(box.current!);
     return () => ro.disconnect();
   }, []);
+  // Escape closes the details panel first, then full screen (only bound while one of them is open).
+  useHotkey("escape", () => (selected ? setSelected(null) : setFull(false)), { enabled: full || !!selected });
+  useHotkey("/", () => search.current?.focus());
+  useHotkey("f", () => setFull((f) => !f));
+  useHotkey("0", () => fg.current?.zoomToFit(500, 60));
+  useHotkey("=", () => fg.current?.zoom(fg.current.zoom() * 1.4, 300));
+  useHotkey("-", () => fg.current?.zoom(fg.current.zoom() / 1.4, 300));
+  // Full screen: lock page scroll and move focus into the dialog, back to the opener on exit.
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && (setFull(false), setSelected(null));
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
+    if (!full) return;
+    const prev = document.body.style.overflow;
+    const opener = document.activeElement as HTMLElement | null;
+    document.body.style.overflow = "hidden";
+    root.current?.focus();
+    return () => {
+      document.body.style.overflow = prev;
+      opener?.focus();
+    };
+  }, [full]);
 
   // The library mutates node/link objects, so hand it copies (recomputed when type filters change).
   const graph = useMemo(() => {
@@ -147,37 +168,84 @@ export function KnowledgeGraphView({ data }: { data: KnowledgeGraph }) {
     }
   }
 
-  if (!data.nodes.length) return <p className="text-sm text-muted-foreground">No graph could be generated.</p>;
+  if (!data.nodes.length) return <p className="text-sm text-muted-foreground">No graph could be generated for this paper.</p>;
   const sel = selected ? byId.get(selected) : null;
-  const ctrl = "grid size-8 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-white/10 hover:text-foreground";
+  const ctrl = "grid size-7 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground";
+  const firstMatch = matches ? graph.nodes.find((n) => matches.has(n.id)) : null;
 
   return (
-    <div className={cn("flex flex-col gap-3", full && "fixed inset-0 z-50 bg-background/95 p-4 backdrop-blur-xl sm:p-6")}>
-      {/* toolbar */}
-      <div className="flex flex-wrap items-center gap-2">
-        {TYPES.filter((t) => counts[t]).map((t) => {
-          const off = hidden.has(t);
-          return (
-            <button
-              key={t}
-              onClick={() => setHidden((h) => { const n = new Set(h); if (off) n.delete(t); else n.add(t); return n; })}
-              className={cn("flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs capitalize transition-all", off ? "opacity-40" : "hover:border-white/25")}
-              title={off ? `Show ${t}s` : `Hide ${t}s`}
-            >
-              <span className="size-2 rounded-full" style={{ background: COLORS[t] }} /> {t}
-              <span className="text-muted-foreground tabular-nums">{counts[t]}</span>
-            </button>
-          );
-        })}
-        <label className="ml-auto flex h-8 items-center gap-2 rounded-full border bg-white/[0.02] px-3 text-xs focus-within:border-white/25">
-          <Search className="size-3.5 text-muted-foreground" />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Find a concept" className="w-28 bg-transparent outline-none placeholder:text-muted-foreground sm:w-36" />
+    <div
+      ref={root}
+      tabIndex={-1}
+      className={cn("flex flex-col gap-3 outline-none", full && "fixed inset-0 z-50 bg-background p-4 sm:p-6")}
+      role={full ? "dialog" : undefined}
+      aria-modal={full || undefined}
+      aria-label={full ? "Concept map, full screen" : undefined}
+    >
+      {full ? (
+        <div className="flex items-center gap-3">
+          <p className="text-sm font-medium">Concept map</p>
+          <p className="text-xs text-muted-foreground"><Kbd>Esc</Kbd> to exit</p>
+          <Button variant="ghost" size="icon-sm" className="ml-auto" onClick={() => setFull(false)} aria-label="Exit full screen"><X /></Button>
+        </div>
+      ) : (
+        <p className="max-w-[72ch] text-sm text-muted-foreground">
+          The paper&apos;s concepts, methods, models, datasets, tasks and metrics, and how they relate. Click a dot to see its connections; use the type filters to hide groups.
+        </p>
+      )}
+      {/* toolbar: chips wrap in their own cell, search stays top-right */}
+      <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {TYPES.filter((t) => counts[t]).map((t) => {
+            const off = hidden.has(t);
+            return (
+              <Tip key={t} content={off ? `Show ${t}s` : `Hide ${t}s`}>
+                <button
+                  type="button"
+                  aria-pressed={!off}
+                  onClick={() => setHidden((h) => { const n = new Set(h); if (off) n.delete(t); else n.add(t); return n; })}
+                  className={cn(
+                    "flex h-7 items-center gap-1.5 rounded-md border px-2 text-xs capitalize transition-colors",
+                    off ? "text-muted-foreground line-through decoration-muted-foreground/70" : "hover:bg-muted",
+                  )}
+                >
+                  <span className={cn("size-2 rounded-full", off && "opacity-40")} style={{ background: COLORS[t] }} aria-hidden /> {t}
+                  <span className="text-muted-foreground tabular-nums">{counts[t]}</span>
+                </button>
+              </Tip>
+            );
+          })}
+          {hidden.size > 0 && (
+            <Button variant="ghost" size="xs" onClick={() => setHidden(new Set())} className="text-muted-foreground">Show all</Button>
+          )}
+        </div>
+        <label className="flex h-7 items-center gap-1.5 rounded-md border bg-background px-2 text-xs focus-within:border-ring">
+          <Search className="size-3.5 text-muted-foreground" aria-hidden />
+          <input
+            ref={search}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && firstMatch) jumpTo(firstMatch.id);
+              if (e.key === "Escape") { setQuery(""); e.currentTarget.blur(); }
+            }}
+            placeholder="Find a concept"
+            aria-label="Find a concept"
+            className="w-28 bg-transparent outline-none placeholder:text-muted-foreground sm:w-36"
+          />
+          {query ? (
+            <>
+              <span className="text-muted-foreground tabular-nums" role="status">{matches?.size ?? 0}</span>
+              <button type="button" onClick={() => setQuery("")} aria-label="Clear search" className="text-muted-foreground hover:text-foreground"><X className="size-3.5" /></button>
+            </>
+          ) : (
+            <Kbd className="h-4 min-w-4 text-[9.5px]">/</Kbd>
+          )}
         </label>
       </div>
 
       {/* canvas */}
-      <div ref={box} className={cn("bg-dots relative overflow-hidden rounded-2xl border bg-zinc-950", full ? "flex-1" : "h-[560px]")}>
-        <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,oklch(0.88_0.17_95/0.06),transparent_60%)]" />
+      <div ref={box} className={cn("relative overflow-hidden rounded-lg border bg-background", full ? "min-h-0 flex-1" : "h-[560px]")}>
         {size.w > 0 && (
           <ForceGraph2D
             graphRef={setRef as never}
@@ -220,7 +288,7 @@ export function KnowledgeGraphView({ data }: { data: KnowledgeGraph }) {
               // glow
               ctx.beginPath();
               ctx.arc(node.x!, node.y!, r * (lit ? 2.6 : 1.9), 0, 2 * Math.PI);
-              ctx.fillStyle = color + (lit ? "40" : "1a");
+              ctx.fillStyle = color + (lit ? "40" : "12");
               ctx.fill();
               // core
               ctx.beginPath();
@@ -261,46 +329,55 @@ export function KnowledgeGraphView({ data }: { data: KnowledgeGraph }) {
         )}
 
         {/* zoom controls */}
-        <div className="absolute bottom-3 left-3 flex flex-col gap-0.5 rounded-xl border bg-zinc-900/80 p-1 backdrop-blur">
-          <button className={ctrl} onClick={() => fg.current?.zoom(fg.current.zoom() * 1.4, 300)} aria-label="Zoom in"><Plus className="size-4" /></button>
-          <button className={ctrl} onClick={() => fg.current?.zoom(fg.current.zoom() / 1.4, 300)} aria-label="Zoom out"><Minus className="size-4" /></button>
-          <button className={ctrl} onClick={() => fg.current?.zoomToFit(500, 60)} aria-label="Fit to screen"><Scan className="size-4" /></button>
-          <button className={ctrl} onClick={() => setFull((f) => !f)} aria-label={full ? "Exit full screen" : "Full screen"}>
-            {full ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
-          </button>
+        <div className="absolute bottom-3 left-3 flex flex-col gap-0.5 rounded-md border bg-elevated p-0.5 shadow-md shadow-black/30" role="group" aria-label="Zoom">
+          <Tip content="Zoom in" shortcut="=" side="right"><button className={ctrl} onClick={() => fg.current?.zoom(fg.current.zoom() * 1.4, 300)} aria-label="Zoom in"><Plus className="size-4" /></button></Tip>
+          <Tip content="Zoom out" shortcut="-" side="right"><button className={ctrl} onClick={() => fg.current?.zoom(fg.current.zoom() / 1.4, 300)} aria-label="Zoom out"><Minus className="size-4" /></button></Tip>
+          <Tip content="Fit to screen" shortcut="0" side="right"><button className={ctrl} onClick={() => fg.current?.zoomToFit(500, 60)} aria-label="Fit to screen"><Scan className="size-4" /></button></Tip>
+          <Tip content={full ? "Exit full screen" : "Full screen"} shortcut="f" side="right">
+            <button className={ctrl} onClick={() => setFull((f) => !f)} aria-label={full ? "Exit full screen" : "Full screen"}>
+              {full ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+            </button>
+          </Tip>
         </div>
-        <p className="pointer-events-none absolute right-3 bottom-3 rounded-full border bg-zinc-900/80 px-3 py-1 text-[11px] text-muted-foreground backdrop-blur">
-          {graph.nodes.length} nodes · {graph.links.length} links · click a node for details
+        <p className="pointer-events-none absolute right-3 bottom-3 rounded-md border bg-elevated px-2 py-1 text-[11px] text-muted-foreground tabular-nums" aria-live="polite">
+          {plural(graph.nodes.length, "node")} · {plural(graph.links.length, "link")}
+          <span className="hidden sm:inline"> · drag to pan, scroll to zoom</span>
         </p>
 
         {/* details panel */}
         {sel && (
-          <aside className="animate-pop absolute top-3 right-3 max-h-[calc(100%-4.5rem)] w-72 overflow-y-auto rounded-2xl border bg-zinc-900/90 p-4 shadow-2xl backdrop-blur-xl">
-            <div className="mb-3 flex items-start gap-2">
-              <span className="mt-1.5 size-2.5 shrink-0 rounded-full" style={{ background: COLORS[sel.type] }} />
-              <div className="flex-1">
-                <p className="leading-snug font-medium">{sel.label}</p>
-                <p className="text-xs text-muted-foreground capitalize">{sel.type} · {relations.length} connection{relations.length === 1 ? "" : "s"}</p>
+          <aside className="scroll-shadow-y absolute top-3 right-3 max-h-[calc(100%-4.5rem)] w-72 overflow-y-auto rounded-lg border bg-elevated p-3 shadow-xl shadow-black/40" style={{ "--scroll-bg": "var(--elevated)" } as React.CSSProperties} aria-label={`Details for ${sel.label}`}>
+            <div className="mb-2 flex items-start gap-2">
+              <span className="mt-1.5 size-2.5 shrink-0 rounded-full" style={{ background: COLORS[sel.type] }} aria-hidden />
+              <div className="min-w-0 flex-1">
+                <p className="leading-snug font-medium text-pretty">{sel.label}</p>
+                <p className="text-xs text-muted-foreground"><span className="capitalize">{sel.type}</span> · {plural(relations.length, "connection")}</p>
               </div>
-              <button onClick={() => setSelected(null)} className="text-muted-foreground hover:text-foreground" aria-label="Close"><X className="size-4" /></button>
+              <Tip content="Close" shortcut="escape">
+                <button onClick={() => setSelected(null)} className="grid size-6 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Close details"><X className="size-4" /></button>
+              </Tip>
             </div>
-            <ul className="space-y-1">
-              {relations.map((r, i) => {
-                const other = byId.get(r.other);
-                if (!other) return null;
-                return (
-                  <li key={i}>
-                    <button onClick={() => jumpTo(other.id)} className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors hover:bg-white/5">
-                      <span className="shrink-0 rounded bg-white/5 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
-                        {r.dir === "out" ? "→" : "←"} {r.rel.replaceAll("_", " ")}
-                      </span>
-                      <span className="size-1.5 shrink-0 rounded-full" style={{ background: COLORS[other.type] }} />
-                      <span className="truncate">{other.label}</span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+            {relations.length === 0 ? (
+              <p className="px-2 py-1 text-xs text-muted-foreground">Not linked to anything else in the paper.</p>
+            ) : (
+              <ul className="space-y-0.5">
+                {relations.map((r, i) => {
+                  const other = byId.get(r.other);
+                  if (!other) return null;
+                  return (
+                    <li key={i}>
+                      <button onClick={() => jumpTo(other.id)} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors hover:bg-muted" title={`Go to ${other.label}`}>
+                        <span className="shrink-0 rounded-sm bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+                          {r.dir === "out" ? "→" : "←"} {r.rel.replaceAll("_", " ")}
+                        </span>
+                        <span className="size-1.5 shrink-0 rounded-full" style={{ background: COLORS[other.type] }} aria-hidden />
+                        <span className="truncate">{other.label}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </aside>
         )}
       </div>

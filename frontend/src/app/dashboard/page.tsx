@@ -1,42 +1,84 @@
 "use client";
 
-import { useEffect } from "react";
-import { toast } from "sonner";
-
+import { ChatPanel } from "@/components/chat/ChatPanel";
 import { AddPaperBar } from "@/components/dashboard/AddPaperBar";
-import { DashboardHero } from "@/components/dashboard/DashboardHero";
 import { DropOverlay } from "@/components/dashboard/DropOverlay";
 import { PaperGrid } from "@/components/dashboard/PaperGrid";
-import { AppHeader } from "@/components/layout/AppHeader";
-import { isProcessing } from "@/helpers/format";
+import { AppShell, PageWithChat } from "@/components/layout/AppShell";
+import { canChat, isProcessing, plural } from "@/helpers/format";
 import { useAuth } from "@/hooks/useAuth";
-import { usePolling } from "@/hooks/usePolling";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { usePaperStore } from "@/store/paperStore";
 
 export default function DashboardPage() {
   const { user } = useAuth({ required: true });
-  const { papers, fetchPapers } = usePaperStore();
-
-  useEffect(() => {
-    if (user) fetchPapers().catch((e) => toast.error(e.message));
-  }, [user, fetchPapers]);
-  usePolling(() => fetchPapers().catch(() => {}), papers.some((p) => isProcessing(p.status)));
-
+  const papers = usePaperStore((s) => s.papers);
+  const processing = papers.filter((p) => isProcessing(p.status)).length;
+  useDocumentTitle(processing ? `(${processing}) Library` : "Library");
   if (!user) return null;
+
+  const ready = papers.filter((p) => p.status === "ready").length;
+  const failed = papers.filter((p) => p.status === "failed").length;
+  const searchable = papers.filter((p) => canChat(p.status)).length;
+
   return (
-    <>
-      <AppHeader />
-      <div className="relative flex-1">
-        {/* same aurora + dot grid as the landing page */}
-        <div aria-hidden className="bg-dots pointer-events-none absolute inset-x-0 top-0 h-[520px] [mask-image:radial-gradient(ellipse_at_top,black_15%,transparent_70%)]" />
-        <div aria-hidden className="pointer-events-none absolute -top-48 left-1/2 h-[420px] w-[820px] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,oklch(0.88_0.17_95/0.12),transparent)] blur-2xl" />
-        <main className="relative mx-auto w-full max-w-7xl space-y-10 px-6 py-12">
-          <DashboardHero user={user} papers={papers} />
+    <AppShell>
+      <PageWithChat
+        chat={
+          <ChatPanel
+            chatPath="/library/chat"
+            enabled={searchable > 0}
+            title="Ask your library"
+            description={searchable ? `Searches all ${searchable} indexed papers and cites each source.` : "Searches every paper you add and cites each source."}
+            subject="your papers"
+            disabledHint="Add a paper to start. Once it's indexed you can ask questions across your whole library here."
+            suggestions={["Which papers discuss evaluation metrics?", "What methods do my papers share?", "Summarise each paper in one line"]}
+          />
+        }
+      >
+        <div className="space-y-8">
+          <header>
+            <h1 className="text-xl font-semibold tracking-tight">Library</h1>
+            <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground" aria-live="polite">
+              {papers.length ? (
+                <>
+                  <span className="tabular-nums">{plural(papers.length, "paper")}</span>
+                  {/* the breakdown only earns its place when something isn't ready */}
+                  {ready < papers.length && (
+                    <>
+                      <span aria-hidden className="opacity-40">·</span>
+                      <span className="inline-flex items-center gap-1.5 tabular-nums">
+                        <span aria-hidden className="size-1.5 rounded-full bg-emerald-400" /> {ready} ready
+                      </span>
+                    </>
+                  )}
+                  {processing > 0 && (
+                    <>
+                      <span aria-hidden className="opacity-40">·</span>
+                      <span className="inline-flex items-center gap-1.5 tabular-nums">
+                        <span aria-hidden className="size-1.5 animate-pulse rounded-full bg-highlight" /> {processing} processing
+                      </span>
+                    </>
+                  )}
+                  {failed > 0 && (
+                    <>
+                      <span aria-hidden className="opacity-40">·</span>
+                      <span className="inline-flex items-center gap-1.5 tabular-nums text-red-300">
+                        <span aria-hidden className="size-1.5 rounded-full bg-red-400" /> {failed} failed
+                      </span>
+                    </>
+                  )}
+                </>
+              ) : (
+                "Add a paper to get a summary, cited answers and comparisons."
+              )}
+            </p>
+          </header>
           <AddPaperBar />
           <PaperGrid />
-        </main>
-      </div>
+        </div>
+      </PageWithChat>
       <DropOverlay />
-    </>
+    </AppShell>
   );
 }

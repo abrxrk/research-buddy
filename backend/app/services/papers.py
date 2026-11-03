@@ -5,10 +5,10 @@ from datetime import datetime, timezone
 
 from bson import ObjectId
 
+from app.ai.analysis.service import run_analysis
+from app.ai.rag import ingestion, retrieval
 from app.core.config import settings
 from app.core.database import chats, papers
-from app.services import ingestion, retrieval
-from app.services.analysis import run_analysis
 from app.services.downloader import DownloadError, PaperDownloader
 
 log = logging.getLogger(__name__)

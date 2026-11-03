@@ -2,8 +2,8 @@
 from functools import lru_cache
 from pathlib import Path
 
-from app.core.vectorstore import chunks as collection
-from app.helpers.embeddings import EMBED_MODEL, MAX_TOKENS, embed_documents
+from app.ai.rag.embeddings import EMBED_MODEL, MAX_TOKENS, embed_documents
+from app.ai.rag.vectorstore import chunks as collection
 
 
 @lru_cache

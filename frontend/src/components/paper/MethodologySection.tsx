@@ -1,43 +1,63 @@
-import { Boxes, Database } from "lucide-react";
-
 import { Section } from "@/components/paper/Section";
+import { CopyButton } from "@/components/ui/copy-button";
 import type { Methodology } from "@/types";
 
-function ChipCard({ icon: Icon, title, items }: { icon: typeof Boxes; title: string; items: string[] }) {
+const PILL_MAX = 36;
+
+/** Short items read as tags; once any item is a sentence, pills turn into boxes, so fall back to a plain list. */
+function Tags({ items, empty }: { items: string[]; empty: string }) {
+  if (!items.length) return <p className="text-muted-foreground">{empty}</p>;
+  if (items.some((t) => t.length > PILL_MAX))
+    return (
+      <ul className="divide-y border-y">
+        {items.map((t) => <li key={t} className="py-1.5 text-sm text-pretty">{t}</li>)}
+      </ul>
+    );
   return (
-    <div className="rounded-2xl border bg-card/40 p-5">
-      <p className="mb-3 flex items-center gap-2 text-sm font-medium"><Icon className="size-4 text-muted-foreground" /> {title}</p>
-      {items.length ? (
-        <div className="flex flex-wrap gap-1.5">
-          {items.map((t) => <span key={t} className="rounded-full border bg-white/[0.03] px-2.5 py-1 text-xs">{t}</span>)}
-        </div>
-      ) : (
-        <p className="text-sm text-muted-foreground">None mentioned.</p>
-      )}
-    </div>
+    <ul className="flex flex-wrap gap-1.5">
+      {items.map((t) => (
+        <li key={t} className="rounded-md border bg-muted/30 px-2 py-0.5 text-xs leading-5 select-all">{t}</li>
+      ))}
+    </ul>
   );
 }
 
 export function MethodologySection({ data }: { data: Methodology }) {
+  const techniquesMd = () => data.techniques.map((t) => `- **${t.name}** — ${t.description}`).join("\n");
   return (
-    <div className="space-y-8">
-      <p className="text-[15px] leading-7">{data.summary}</p>
-      <Section title={`Techniques · ${data.techniques.length}`}>
-        <ol className="relative space-y-3 before:absolute before:top-3 before:bottom-3 before:left-[15px] before:w-px before:bg-white/10">
-          {data.techniques.map((t, i) => (
-            <li key={t.name} className="relative flex gap-4">
-              <span className="z-10 grid size-8 shrink-0 place-items-center rounded-full border bg-background font-mono text-xs">{String(i + 1).padStart(2, "0")}</span>
-              <div className="flex-1 rounded-xl border bg-card/40 p-4 transition-colors hover:border-white/20">
-                <p className="font-medium">{t.name}</p>
-                <p className="mt-1 text-muted-foreground">{t.description}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
+    <div className="space-y-10">
+      <Section title="How it works, in plain language">
+        <p className="text-base leading-relaxed text-pretty">{data.summary}</p>
       </Section>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <ChipCard icon={Boxes} title="Models" items={data.models} />
-        <ChipCard icon={Database} title="Datasets" items={data.datasets} />
+
+      <Section
+        title="Techniques"
+        count={data.techniques.length || undefined}
+        description="The building blocks of the approach, each explained briefly."
+        aside={data.techniques.length > 0 && <CopyButton text={techniquesMd} label="Copy as markdown" />}
+        measure={false}
+      >
+        {data.techniques.length ? (
+          <dl className="divide-y border-y">
+            {data.techniques.map((t) => (
+              <div key={t.name} className="grid gap-1 py-3 @xl:grid-cols-[13rem_1fr] @xl:gap-6">
+                <dt className="font-medium text-pretty">{t.name}</dt>
+                <dd className="max-w-[72ch] text-muted-foreground text-pretty">{t.description}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : (
+          <p className="text-muted-foreground">No specific techniques were identified.</p>
+        )}
+      </Section>
+
+      <div className="grid gap-10 @xl:grid-cols-2">
+        <Section title="Models" count={data.models.length || undefined} description="Architectures or pretrained models the paper uses or compares against.">
+          <Tags items={data.models} empty="None mentioned." />
+        </Section>
+        <Section title="Datasets" count={data.datasets.length || undefined} description="Benchmarks and corpora used for training or evaluation.">
+          <Tags items={data.datasets} empty="None mentioned." />
+        </Section>
       </div>
     </div>
   );

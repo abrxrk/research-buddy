@@ -1,100 +1,114 @@
 "use client";
 
-import { ArrowLeft, BookOpen, FlaskConical, ListChecks, Network, TriangleAlert } from "lucide-react";
+import { FileQuestion } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useEffect } from "react";
-import { toast } from "sonner";
+import { useParams, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { ChatPanel } from "@/components/chat/ChatPanel";
-import { AppHeader } from "@/components/layout/AppHeader";
+import { AppShell, PageWithChat } from "@/components/layout/AppShell";
+import { SectionTabs } from "@/components/layout/SectionTabs";
 import { FindingsSection } from "@/components/paper/FindingsSection";
 import { KnowledgeGraphView } from "@/components/paper/KnowledgeGraphView";
 import { LimitationsSection } from "@/components/paper/LimitationsSection";
 import { MethodologySection } from "@/components/paper/MethodologySection";
 import { OverviewSection } from "@/components/paper/OverviewSection";
 import { PaperHeader } from "@/components/paper/PaperHeader";
-import { Pending } from "@/components/paper/Section";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Pending, type PendingKind } from "@/components/paper/Section";
+import { buttonVariants } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
 import { canChat, isProcessing } from "@/helpers/format";
 import { useAuth } from "@/hooks/useAuth";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { usePolling } from "@/hooks/usePolling";
 import { usePaperStore } from "@/store/paperStore";
 
+const TAB_KEYS: PendingKind[] = ["overview", "methodology", "findings", "limitations", "graph"];
+
+/** Mirrors the header + tab strip + first paragraphs so the page doesn't jump once the paper arrives. */
+function PageSkeleton() {
+  return (
+    <div className="space-y-8" aria-busy aria-label="Loading paper">
+      <div className="space-y-3">
+        <Skeleton className="h-7 w-3/4" />
+        <Skeleton className="h-7 w-1/2" />
+        <Skeleton className="h-4 w-2/5" />
+        <div className="flex gap-3"><Skeleton className="h-4 w-14" /><Skeleton className="h-4 w-20" /><Skeleton className="h-4 w-24" /></div>
+        <div className="flex gap-2 pt-1"><Skeleton className="h-7 w-24" /><Skeleton className="h-7 w-32" /></div>
+      </div>
+      <div className="flex gap-5 border-b pb-2.5">{[16, 24, 18, 22, 26].map((w, i) => <Skeleton key={i} className="h-4" style={{ width: `${w * 4}px` }} />)}</div>
+      <div className="space-y-3"><Skeleton className="h-3.5 w-48" /><Skeleton className="h-3 w-[95%]" /><Skeleton className="h-3 w-[90%]" /><Skeleton className="h-3 w-[60%]" /></div>
+    </div>
+  );
+}
+
 export function PaperWorkspace() {
   const { id } = useParams<{ id: string }>();
+  const params = useSearchParams();
   const { user } = useAuth({ required: true });
   const { current: paper, fetchPaper } = usePaperStore();
 
+  // ?tab= keeps the open tab in the URL so links and refreshes land on the same section.
+  const fromUrl = params.get("tab");
+  const [tab, setTab] = useState<string>(TAB_KEYS.includes(fromUrl as PendingKind) ? fromUrl! : "overview");
+  const selectTab = (key: string) => {
+    setTab(key);
+    const url = new URL(window.location.href);
+    if (key === "overview") url.searchParams.delete("tab");
+    else url.searchParams.set("tab", key);
+    window.history.replaceState(window.history.state, "", url);
+  };
+
+  // Keyed by id so navigating to another paper clears it without an extra state reset.
+  const [failed, setFailed] = useState<{ id: string; message: string } | null>(null);
+  const error = failed?.id === id ? failed.message : null;
   useEffect(() => {
-    if (user) fetchPaper(id).catch((e) => toast.error(e.message));
+    if (user) fetchPaper(id).catch((e) => setFailed({ id, message: e instanceof Error ? e.message : "Couldn't load this paper" }));
   }, [user, id, fetchPaper]);
   const loaded = paper?.id === id ? paper : null;
   usePolling(() => fetchPaper(id).catch(() => {}), !!loaded && isProcessing(loaded.status));
+  useDocumentTitle(error ? "Paper not found" : loaded?.title);
 
   if (!user) return null;
   const a = loaded?.analysis ?? {};
   const processing = !!loaded && isProcessing(loaded.status);
-  const tabs = [
-    { key: "overview", label: "Overview", icon: BookOpen, body: a.overview && <OverviewSection data={a.overview} /> },
-    { key: "methodology", label: "Methodology", icon: FlaskConical, body: a.methodology && <MethodologySection data={a.methodology} /> },
-    { key: "findings", label: "Findings", icon: ListChecks, body: a.findings && <FindingsSection data={a.findings} /> },
-    { key: "limitations", label: "Limitations", icon: TriangleAlert, body: a.limitations && <LimitationsSection data={a.limitations} /> },
-    { key: "graph", label: "Knowledge graph", icon: Network, body: a.knowledge_graph && <KnowledgeGraphView data={a.knowledge_graph} /> },
-  ];
+  const make = (key: PendingKind, label: string, body: React.ReactNode, count?: number) => ({
+    key, label, count: body ? count : undefined, busy: !body && processing, body: body || <Pending processing={processing} kind={key} />,
+  });
 
   return (
-    <>
-      <AppHeader>
-        <Link href="/dashboard" className="flex w-fit items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground">
-          <ArrowLeft className="size-4" /> Library
-        </Link>
-      </AppHeader>
-      <div className="relative flex-1">
-        <div aria-hidden className="bg-dots pointer-events-none absolute inset-x-0 top-0 h-[420px] [mask-image:radial-gradient(ellipse_at_top_left,black_10%,transparent_65%)]" />
-        <div aria-hidden className="pointer-events-none absolute -top-40 left-0 h-[380px] w-[700px] rounded-full bg-[radial-gradient(closest-side,oklch(0.88_0.17_95/0.1),transparent)] blur-2xl" />
-        <main className="relative mx-auto grid w-full max-w-7xl gap-8 px-6 py-10 lg:grid-cols-[minmax(0,1fr)_400px]">
-          {!loaded ? (
-            <div className="space-y-4 lg:col-span-2">
-              <div className="h-6 w-60 animate-pulse rounded-full bg-card" />
-              <div className="h-10 w-2/3 animate-pulse rounded-xl bg-card" />
-              <div className="h-64 animate-pulse rounded-2xl bg-card/60" />
-            </div>
-          ) : (
-            <>
-              <div className="min-w-0 space-y-8">
-                <PaperHeader paper={loaded} />
-                {loaded.status !== "failed" && (
-                  <Tabs defaultValue="overview" className="gap-6">
-                    <TabsList className="h-auto! no-scrollbar w-full justify-start gap-1 overflow-x-auto rounded-full border bg-white/[0.02] p-1">
-                      {tabs.map((t) => (
-                        <TabsTrigger
-                          key={t.key}
-                          value={t.key}
-                          className="h-8 flex-none gap-1.5 rounded-full px-3.5 text-[13px] data-active:bg-foreground! data-active:text-background!"
-                        >
-                          <t.icon className="size-3.5" /> {t.label}
-                          {!t.body && processing && <span className="size-1.5 animate-pulse rounded-full bg-highlight" />}
-                        </TabsTrigger>
-                      ))}
-                    </TabsList>
-                    {tabs.map((t) => (
-                      <TabsContent key={t.key} value={t.key} className="animate-pop">
-                        {t.body || <Pending processing={processing} />}
-                      </TabsContent>
-                    ))}
-                  </Tabs>
-                )}
-              </div>
-              <div className="lg:sticky lg:top-24 lg:h-[calc(100vh-8rem)]">
-                <div className="h-[620px] lg:h-full">
-                  <ChatPanel paperId={loaded.id} enabled={canChat(loaded.status)} />
-                </div>
-              </div>
-            </>
-          )}
-        </main>
-      </div>
-    </>
+    <AppShell>
+      {!loaded && error ? (
+        <EmptyState icon={FileQuestion} title="This paper isn't in your library" description={error} className="py-24">
+          <Link href="/dashboard" className={buttonVariants({ variant: "outline", size: "sm" })}>Back to library</Link>
+        </EmptyState>
+      ) : !loaded ? (
+        <PageWithChat chat={<Skeleton className="h-full rounded-lg" />}>
+          <PageSkeleton />
+        </PageWithChat>
+      ) : (
+        <PageWithChat chat={<ChatPanel chatPath={`/papers/${loaded.id}/chat`} enabled={canChat(loaded.status)} />}>
+          {/* @container: section grids split by the real column width, not the viewport (chat panel takes 380px). */}
+          <div className="@container space-y-8">
+            <PaperHeader paper={loaded} />
+            {loaded.status !== "failed" && (
+              <SectionTabs
+                value={tab}
+                onValueChange={selectTab}
+                hotkeys
+                tabs={[
+                  make("overview", "Overview", a.overview && <OverviewSection data={a.overview} />),
+                  make("methodology", "Methodology", a.methodology && <MethodologySection data={a.methodology} />),
+                  make("findings", "Findings", a.findings && <FindingsSection data={a.findings} />, a.findings?.results.length),
+                  make("limitations", "Limitations", a.limitations && <LimitationsSection data={a.limitations} />, a.limitations?.limitations.length),
+                  make("graph", "Concept map", a.knowledge_graph && <KnowledgeGraphView data={a.knowledge_graph} />, a.knowledge_graph?.nodes.length),
+                ]}
+              />
+            )}
+          </div>
+        </PageWithChat>
+      )}
+    </AppShell>
   );
 }

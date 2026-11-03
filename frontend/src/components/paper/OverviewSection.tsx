@@ -1,44 +1,75 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 import { Section } from "@/components/paper/Section";
+import { Button } from "@/components/ui/button";
+import { CopyButton } from "@/components/ui/copy-button";
+import { plural } from "@/helpers/format";
+import { cn } from "@/lib/utils";
 import type { Overview } from "@/types";
 
 export function OverviewSection({ data }: { data: Overview }) {
   const [full, setFull] = useState(false);
+  // "Read more" only when the clamp actually hides text; measured, so it tracks the column width.
+  const abstractRef = useRef<HTMLParagraphElement>(null);
+  const [long, setLong] = useState(false);
+  useLayoutEffect(() => {
+    const el = abstractRef.current;
+    if (!el || full) return;
+    const check = () => setLong(el.scrollHeight > el.clientHeight + 1);
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [full, data.abstract]);
+  const words = data.abstract ? data.abstract.trim().split(/\s+/).length : 0;
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       {data.objective && (
-        <figure className="relative overflow-hidden rounded-2xl border bg-card/60 p-6">
-          <div className="absolute inset-y-0 left-0 w-1 bg-highlight" />
-          <p className="mb-2 text-xs tracking-widest text-muted-foreground uppercase">In one line</p>
-          <blockquote className="font-serif text-2xl leading-snug italic">{data.objective}</blockquote>
-        </figure>
+        <Section title="What the paper sets out to do">
+          <p className="text-base leading-relaxed text-pretty">{data.objective}</p>
+        </Section>
       )}
 
-      <Section title={`Key contributions · ${data.contributions.length}`}>
-        <ol className="grid gap-3 sm:grid-cols-2">
-          {data.contributions.map((c, i) => (
-            <li key={i} className="group flex gap-3 rounded-xl border bg-card/40 p-4 transition-colors hover:border-white/20">
-              <span className="grid size-6 shrink-0 place-items-center rounded-full bg-highlight/15 font-mono text-[11px] text-highlight transition-colors group-hover:bg-highlight group-hover:text-zinc-900">
-                {i + 1}
-              </span>
-              <span>{c}</span>
-            </li>
-          ))}
-        </ol>
+      <Section
+        title="Key contributions"
+        count={data.contributions.length || undefined}
+        description="What the authors say is new in this work."
+        aside={data.contributions.length > 0 && <CopyButton text={() => data.contributions.map((c, i) => `${i + 1}. ${c}`).join("\n")} label="Copy as list" />}
+      >
+        {data.contributions.length ? (
+          <ol className="space-y-2.5">
+            {data.contributions.map((c, i) => (
+              <li key={i} className="flex gap-3">
+                <span className="mt-0.5 w-5 shrink-0 font-mono text-xs leading-relaxed text-muted-foreground tabular-nums">{String(i + 1).padStart(2, "0")}</span>
+                <span className="text-pretty">{c}</span>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="text-muted-foreground">None found.</p>
+        )}
       </Section>
 
       <Section
         title="Abstract"
-        aside={data.abstract.length > 420 && (
-          <button onClick={() => setFull((f) => !f)} className="text-xs text-muted-foreground hover:text-foreground">
-            {full ? "Show less" : "Read full abstract"}
-          </button>
-        )}
+        description={words ? `${plural(words, "word")}, as written by the authors.` : undefined}
+        aside={data.abstract && <CopyButton text={data.abstract} label="Copy abstract" />}
       >
-        <p className={full ? "whitespace-pre-line text-muted-foreground" : "line-clamp-5 text-muted-foreground"}>{data.abstract || "Not found."}</p>
+        {data.abstract ? (
+          <>
+            <p ref={abstractRef} className={cn("text-muted-foreground", full ? "whitespace-pre-line" : "line-clamp-5")}>{data.abstract}</p>
+            {(long || full) && (
+              <Button variant="ghost" size="xs" onClick={() => setFull((f) => !f)} aria-expanded={full} className="mt-2 -ml-2 text-muted-foreground">
+                {full ? "Show less" : "Read the full abstract"}
+              </Button>
+            )}
+          </>
+        ) : (
+          <p className="text-muted-foreground">Not found in the paper.</p>
+        )}
       </Section>
     </div>
   );

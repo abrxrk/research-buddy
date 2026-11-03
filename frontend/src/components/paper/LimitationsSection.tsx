@@ -1,31 +1,45 @@
-import { Telescope, TriangleAlert } from "lucide-react";
+import { AlertTriangle, ArrowRight } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
+import { Section } from "@/components/paper/Section";
+import { CopyButton } from "@/components/ui/copy-button";
 import type { Limitations } from "@/types";
 
-function Column({ title, items, icon: Icon, tone }: { title: string; items: string[]; icon: typeof Telescope; tone: string }) {
+function List({ items, icon: Icon, empty }: { items: string[]; icon: LucideIcon; empty: string }) {
+  if (!items.length) return <p className="text-muted-foreground">{empty}</p>;
   return (
-    <div className="rounded-2xl border bg-card/40 p-5">
-      <p className={`mb-4 flex items-center gap-2 text-sm font-medium ${tone}`}><Icon className="size-4" /> {title} <span className="text-xs text-muted-foreground">· {items.length}</span></p>
-      {items.length ? (
-        <ul className="space-y-3">
-          {items.map((t, i) => (
-            <li key={i} className="flex gap-3 text-sm leading-relaxed">
-              <span className="font-mono text-xs text-muted-foreground">{String(i + 1).padStart(2, "0")}</span> {t}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-sm text-muted-foreground">Nothing found in the paper.</p>
-      )}
-    </div>
+    <ul className="space-y-3">
+      {items.map((t, i) => (
+        <li key={i} className="flex gap-3">
+          <Icon className="mt-1 size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+          <span className="text-pretty">{t}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
+const asList = (items: string[]) => () => items.map((t) => `- ${t}`).join("\n");
+
 export function LimitationsSection({ data }: { data: Limitations }) {
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <Column title="Limitations" items={data.limitations} icon={TriangleAlert} tone="text-amber-300" />
-      <Column title="Future directions" items={data.future_work} icon={Telescope} tone="text-emerald-300" />
+    <div className="grid gap-10 @3xl:grid-cols-2 @3xl:gap-12">
+      <Section
+        title="Limitations"
+        count={data.limitations.length || undefined}
+        description="Weaknesses stated by the authors or clearly implied by the paper."
+        aside={data.limitations.length > 0 && <CopyButton text={asList(data.limitations)} label="Copy as list" />}
+      >
+        <List items={data.limitations} icon={AlertTriangle} empty="The paper doesn't state any limitations." />
+      </Section>
+      <Section
+        title="Future directions"
+        count={data.future_work.length || undefined}
+        description="Open questions and next steps the paper points to."
+        aside={data.future_work.length > 0 && <CopyButton text={asList(data.future_work)} label="Copy as list" />}
+      >
+        <List items={data.future_work} icon={ArrowRight} empty="No future work is mentioned." />
+      </Section>
     </div>
   );
 }

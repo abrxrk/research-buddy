@@ -32,5 +32,35 @@ export type Paper = {
   created_at: string;
 };
 
-export type Source = { n: number; page: number; pages: string; section: string; text: string };
+export type Source = {
+  n: number;
+  page: number;
+  pages: string;
+  section: string;
+  text: string;
+  paper_id?: string | null;
+  paper_title?: string | null; // set in library / comparison chats
+};
 export type ChatMessage = { role: "user" | "assistant"; content: string; sources: Source[]; created_at?: string };
+
+export type ComparisonStatus = "queued" | "briefing" | "synthesizing" | "ready" | "failed";
+export type ComparisonAspect = {
+  name: string;
+  summary: string;
+  similarities: string[];
+  differences: string[];
+  per_paper: { paper: number; value: string }[]; // paper is 1-based, matching titles
+};
+export type ComparisonResult = {
+  overview: { summary: string; papers: { paper: number; one_liner: string }[] };
+  aspects: ComparisonAspect[];
+};
+export type Comparison = {
+  id: string;
+  paper_ids: string[];
+  titles: string[];
+  status: ComparisonStatus;
+  error: string | null;
+  result: ComparisonResult | null;
+  created_at: string;
+};

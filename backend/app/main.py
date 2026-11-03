@@ -5,7 +5,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import auth, chat, papers
+from app.ai.comparison import service as comparison_service
+from app.api.routes import auth, chat, comparisons, papers
 from app.core.config import settings
 from app.core.database import init_indexes
 from app.services.papers import fail_interrupted
@@ -15,8 +16,8 @@ logging.basicConfig(level=logging.INFO)
 
 def _warm_models():
     """Load (and on first run, download) the embedding + reranker models so the first request isn't slow."""
-    from app.helpers.embeddings import embed_query
-    from app.helpers.reranker import rerank
+    from app.ai.rag.embeddings import embed_query
+    from app.ai.rag.reranker import rerank
 
     embed_query("warmup")  # goes through the helpers' locks, so an early request just waits
     rerank("warmup", ["warmup"])
@@ -27,6 +28,7 @@ def _warm_models():
 async def lifespan(_):
     await init_indexes()
     await fail_interrupted()
+    await comparison_service.fail_interrupted()
     threading.Thread(target=_warm_models, daemon=True).start()  # background: server is up immediately
     yield
 
@@ -40,6 +42,7 @@ app.add_middleware(
 )
 app.include_router(auth.router)
 app.include_router(papers.router)
+app.include_router(comparisons.router)
 app.include_router(chat.router)
 
 

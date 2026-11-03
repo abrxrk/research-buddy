@@ -1,6 +1,6 @@
 from bson import ObjectId
 
-from app.agents.analysis_graph import analyze_paper
+from app.ai.analysis.graph import analyze_paper
 from app.core.database import papers
 
 

@@ -1,0 +1,38 @@
+/* Blinking caret at the end of an answer that is still being written. */
+.chat-streaming > :is(p, h1, h2, h3, blockquote):last-child::after,
+.chat-streaming > :is(ul, ol):last-child > li:last-child::after {
+  content: "";
+  display: inline-block;
+  width: 0.45em;
+  height: 1em;
+  margin-left: 0.15em;
+  vertical-align: -0.15em;
+  border-radius: 1px;
+  background: var(--color-highlight);
+  animation: chat-caret 1s steps(2, start) infinite;
+}
+
+@keyframes chat-caret {
+  to { visibility: hidden; }
+}
+
+/* Citation chips inside answers: small yellow numbers that sit on the text baseline. */
+.chat-cite {
+  display: inline-grid;
+  place-items: center;
+  height: 1rem;
+  min-width: 1rem;
+  margin-inline: 0.125rem;
+  padding-inline: 0.2rem;
+  border-radius: 0.25rem;
+  vertical-align: text-top;
+  background: var(--color-highlight);
+  color: var(--color-highlight-foreground);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1;
+  transition: filter 120ms ease-out, transform 120ms ease-out;
+}
+.chat-cite:hover, .chat-cite[data-popup-open] { filter: brightness(1.1); }
+.chat-cite:active { transform: translateY(1px); }
