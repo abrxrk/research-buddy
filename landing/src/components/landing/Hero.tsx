@@ -21,7 +21,7 @@ export function Hero() {
           </span>
         </h1>
         <p className="animate-pop mx-auto mt-7 max-w-xl text-base leading-7 text-muted-foreground sm:text-lg" style={{ animationDelay: "160ms" }}>
-          Drop in any paper. Get the overview, methods, findings, limitations and a knowledge graph, ask questions with answers cited to the exact page, and compare papers side by side.
+          Add any paper and get a plain-language summary in minutes. Ask questions with answers cited to the exact page, and compare it with the rest of your library.
         </p>
         <div className="animate-pop mt-10 flex flex-wrap justify-center gap-3" style={{ animationDelay: "240ms" }}>
           <PrimaryCta label="Start reading free" className="h-12 px-6 text-sm shadow-[0_0_0_4px_rgb(255_255_255/0.06)]" />
